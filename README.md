@@ -8,6 +8,9 @@ __Group Members:__
 5. __NUR SAFIAH ASHIQIN BINTI SHUHANIZAL__ and __2317618__
 
 
+## WEB APPLICATION SECURITY MEMBERS:
+1. __NUR SAFIAH ASHIQIN BINTI SHUHANIZAL__ and __2317618__ test test
+
 ## 1.0 Introduction
 
 Food service is one of the important criteria for having a comfortable life as a university student. Throughout the time, the increasing number of students in IIUM had addressed the new problem of the efficiency and services of cafeteria food on the campus. Therefore, UniMeal is introduced to solve this problem. A redesigned web application called UniMeal gathers student orders for food and displays the menus from several cafeterias around IIUM. The main target audience of this web application is IIUM students and also the Mahallah Cafeteria. Students will have better food services to buy food, and the Mahallah Cafeteria will also get the benefit of having a lot of online orders. UniMeal's main goal is to give students access to online apps that will enhance the effectiveness of food services at IIUM in the future.

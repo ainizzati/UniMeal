@@ -10,6 +10,7 @@ __Group Members:__
 
 ## WEB APPLICATION SECURITY MEMBERS:
 1. __NUR SAFIAH ASHIQIN BINTI SHUHANIZAL__ and __2317618__ test test
+2. __NURAIN IZZATI BINTI ABD RAUF__ and __2217978__
 
 ## 1.0 Introduction
 

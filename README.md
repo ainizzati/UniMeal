@@ -1,5 +1,5 @@
 # Title: UNIMEAL
-## WEB APPLICATION SECURITY MEMBERS:
+## GROUP MEMBERS:
 1. __NUR SAFIAH ASHIQIN BINTI SHUHANIZAL__ and __2317618__
 2. __NURAIN IZZATI BINTI ABD RAUF__ and __2217978__
 
@@ -9,11 +9,14 @@ Food service is one of the important criteria for having a comfortable life as a
 
 
 ## 2.0 Objectives
-The primary objective of the UniMeal is:
-- To provide wide-range of food selection to IIUM student within one centralised platform
-- To enhance order efficiency and convenience for food ordering around IIUM.
-- To support IIUM community and collaboration on promoting student-run cafeteria on campus.
-- To support the student in effectively managing their food expenses.
+The primary objective of the UniMeal's security enhancement is:
+1. To improve input handling and validation
+2. To strengthen authentication mechanisms
+3. To enforce proper authorization and access control
+4. To prevent client-side and server-side attacks such as XSS and CSRF
+5. To secure database interactions and prevent SQL injection
+6. To enhance file security and prevent unauthorized file access or leakage
+7. To align the web application with industry best practices for web application security.
 
 
 ## 3.0 Features and Functionalities

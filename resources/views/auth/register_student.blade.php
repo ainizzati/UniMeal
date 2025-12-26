@@ -34,8 +34,20 @@
                 <input type="email" name="email" placeholder="Email" value="{{ old('email') }}"
                     class="w-full mb-4 p-3 border rounded" required>
 
-                <input type="password" name="password" placeholder="Password"
-                    class="w-full mb-4 p-3 border rounded" required>
+                <div class="w-full mb-4">
+                    <input type="password" name="password" placeholder="Password"
+                        class="w-full p-3 border rounded" required>
+                    <div class="mt-2 text-xs text-gray-600 bg-blue-50 p-3 rounded border border-blue-200">
+                        <p class="font-semibold text-blue-800 mb-1">Password Requirements:</p>
+                        <ul class="list-disc pl-5 space-y-0.5">
+                            <li>Minimum 10 characters</li>
+                            <li>At least one uppercase letter</li>
+                            <li>At least one lowercase letter</li>
+                            <li>At least one number</li>
+                            <li>At least one special character (!@#$%^&*)</li>
+                        </ul>
+                    </div>
+                </div>
 
                 <input type="password" name="password_confirmation" placeholder="Confirm Password"
                     class="w-full mb-4 p-3 border rounded" required>

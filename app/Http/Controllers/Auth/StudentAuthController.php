@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Student;
+use App\Models\Cafeteria;
+use App\Models\LoginAttempt;
 
 class StudentAuthController extends Controller
 {
@@ -43,13 +45,53 @@ class StudentAuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $student = Student::where('email', $request->email)->first();
+        $email = $request->email;
 
-        if ($student && Hash::check($request->password, $student->password)) {
-            Auth::guard('student')->login($student);
-            return redirect()->route('student.home');
+        // Try to find user in both student and cafeteria tables
+        $student = Student::where('email', $email)->first();
+        $cafeteria = Cafeteria::where('email', $email)->first();
+
+        // Determine which guard to use
+        if ($student) {
+            $guard = 'student';
+            $user = $student;
+            $redirectRoute = 'student.home';
+        } elseif ($cafeteria) {
+            $guard = 'cafeteria';
+            $user = $cafeteria;
+            $redirectRoute = 'vendor.home';
+        } else {
+            // No user found with this email
+            return back()->withErrors(['email' => 'Invalid credentials'])->withInput($request->only('email'));
         }
 
-        return back()->withErrors(['email' => 'Invalid credentials']);
+        // Check for account lockout
+        $failedAttempts = LoginAttempt::getRecentFailedAttempts($email, $guard, 15);
+
+        if ($failedAttempts >= 5) {
+            LoginAttempt::logAttempt($email, $guard, false);
+            return back()->withErrors([
+                'email' => 'Too many failed login attempts. Your account is temporarily locked. Please try again in 15 minutes.'
+            ])->withInput($request->only('email'));
+        }
+
+        // Verify password
+        if (Hash::check($request->password, $user->password)) {
+            // Successful login
+            LoginAttempt::logAttempt($email, $guard, true);
+            LoginAttempt::clearFailedAttempts($email, $guard);
+
+            Auth::guard($guard)->login($user);
+
+            // Regenerate session to prevent session fixation
+            $request->session()->regenerate();
+
+            return redirect()->route($redirectRoute);
+        }
+
+        // Failed login
+        LoginAttempt::logAttempt($email, $guard, false);
+
+        return back()->withErrors(['email' => 'Invalid credentials'])->withInput($request->only('email'));
     }
 }

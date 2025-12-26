@@ -29,7 +29,7 @@ This document details the security enhancements implemented for the UniMeal syst
 **How It Works**:
 ```php
 Password::defaults(function () {
-    return Password::min(12)
+    return Password::min(10)
         ->letters()       // Requires letters
         ->mixedCase()     // Requires both upper and lowercase
         ->numbers()       // Requires at least one number
@@ -201,6 +201,75 @@ SESSION_SAME_SITE=strict         # Strict CSRF protection
 
 ---
 
+### 8. Secure Logout with Session Invalidation
+
+**Implementation Method**: Enhanced logout with complete session cleanup and cache prevention
+
+**Files Modified**:
+- [routes/web.php](routes/web.php#L28-L40) - Logout route enhancement
+- [app/Http/Middleware/PreventBackHistory.php](app/Http/Middleware/PreventBackHistory.php) - New middleware created
+- [bootstrap/app.php](bootstrap/app.php#L14-L19) - Middleware registration
+
+**Security Features Implemented**:
+
+#### Proper Session Cleanup
+- **Session invalidation**: Completely destroys the session
+- **CSRF token regeneration**: Generates new token to prevent reuse
+- **Multi-guard logout**: Logs out from both student and cafeteria guards
+- **Clear user feedback**: Success message after logout
+
+**Implementation**:
+```php
+// Logout from all guards
+Auth::guard('student')->logout();
+Auth::guard('cafeteria')->logout();
+
+// Invalidate the session
+$request->session()->invalidate();
+
+// Regenerate CSRF token
+$request->session()->regenerateToken();
+```
+
+#### Prevent Back Button Access
+**Created**: `PreventBackHistory` middleware
+
+**Purpose**: Prevents users from accessing protected pages after logout by clicking the browser back button
+
+**Cache Control Headers Set**:
+```php
+Cache-Control: no-cache, no-store, must-revalidate, max-age=0
+Pragma: no-cache
+Expires: Sat, 01 Jan 2000 00:00:00 GMT
+```
+
+**Middleware Applied To**:
+- All student protected routes
+- All cafeteria/vendor protected routes
+- Dashboard pages
+- Cart and checkout pages
+- Order tracking pages
+
+**Best Practice Reference**:
+- OWASP Session Management Cheat Sheet - Secure Logout
+- CWE-613: Insufficient Session Expiration
+
+**Security Benefits**:
+- ✅ **Prevents session reuse**: Old session cannot be used after logout
+- ✅ **Blocks back button access**: Browser cache cleared, back button shows login page
+- ✅ **CSRF protection**: New token prevents token replay attacks
+- ✅ **Complete cleanup**: All authentication state removed
+- ✅ **Multi-guard safety**: Works across different user types
+
+**Attack Mitigations**:
+- Session hijacking after logout
+- Browser cache exploitation
+- Shared computer security risks
+- CSRF token reuse
+- Session fixation via logout/login cycle
+
+---
+
 ## Additional Authentication Features
 
 ### Unified Login for Multiple Guards
@@ -248,6 +317,15 @@ SESSION_SAME_SITE=strict         # Strict CSRF protection
 - [ ] Verify session cookie has SameSite=Strict
 - [ ] Confirm session expires after 60 minutes of inactivity
 - [ ] Test that session ID changes after login (check cookie value before/after)
+
+#### 5. Secure Logout Testing
+- [ ] Login to the system and access the dashboard
+- [ ] Click logout button
+- [ ] Verify you are redirected to login page
+- [ ] Click browser back button
+- [ ] Confirm you CANNOT access the dashboard (should redirect to login)
+- [ ] Check browser DevTools Network tab for Cache-Control headers on protected pages
+- [ ] Verify headers include: `no-cache, no-store, must-revalidate`
 
 ### Database Verification
 

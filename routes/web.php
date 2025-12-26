@@ -25,10 +25,18 @@ Route::get('/', function () {
 
 Route::get('/login', fn () => view('auth.login'))->name('login');
 Route::post('/login', [StudentAuthController::class, 'login'])->name('login.post');
-Route::post('/logout', function () {
+Route::post('/logout', function (Illuminate\Http\Request $request) {
+    // Logout from all guards
     Auth::guard('student')->logout();
     Auth::guard('cafeteria')->logout();
-    return redirect()->route('login');
+
+    // Invalidate the session
+    $request->session()->invalidate();
+
+    // Regenerate CSRF token
+    $request->session()->regenerateToken();
+
+    return redirect()->route('login')->with('success', 'You have been logged out successfully.');
 })->name('logout');
 
 /*
@@ -51,7 +59,7 @@ Route::get('/register/cafeteria', [CafeteriaAuthController::class, 'showRegister
 Route::post('/register/cafeteria', [CafeteriaAuthController::class, 'register'])
     ->name('cafeteria.register.submit');
 
-Route::middleware(['auth:cafeteria'])->prefix('vendor')->group(function () {
+Route::middleware(['auth:cafeteria', 'prevent.back'])->prefix('vendor')->group(function () {
     Route::get('/home', [CafeteriaAuthController::class, 'home'])->name('vendor.home');
 });
 
@@ -62,7 +70,7 @@ Route::middleware(['auth:cafeteria'])->prefix('vendor')->group(function () {
 */
 Route::get('/cafeteria/{mahallah}', [MahallahController::class, 'show'])->name('cafeteria.show');
 
-Route::middleware(['auth:student'])->group(function () {
+Route::middleware(['auth:student', 'prevent.back'])->group(function () {
     // Dashboard
     Route::get('/student/home', fn () => view('student.home'))->name('student.home');
 

@@ -146,9 +146,11 @@ Security Impact
 <img width="1919" height="1079" alt="Screenshot 2025-12-29 051520" src="https://github.com/user-attachments/assets/1187d7af-2b33-4105-bfb9-831faa10dd58" />
 
 __iv. XSS and CSRF Prevention__
+
 This section describes the security measures implemented to protect the UniMeal Laravel application against Cross-Site Scripting (XSS) and Cross-Site Request Forgery (CSRF) attacks. The measures cover all relevant pages and forms, including authentication, checkout, and dashboards. The implementation uses a combination of browser-level, application-level, and framework-level protections.
 
 1. Content Security Policy (CSP) Middleware
+
 Purpose:
 CSP prevents XSS attacks by controlling which resources (scripts, styles, images, etc.) the browser can load and execute. It acts as a “whitelist” for allowed resources, blocking malicious scripts even if they are injected.
 
@@ -174,6 +176,7 @@ Adds an extra layer of defense in depth.
 
 
 2. Input Validation Against HTML Injection
+
 Purpose:
 Even with CSP, users could inject harmful HTML that affects layout or causes stored XSS. Server-side validation ensures only clean data is stored.
 
@@ -194,6 +197,7 @@ Complements CSP for defense in depth.
 
 
 3. CSRF Token Verification
+
 Purpose:
 CSRF attacks trick users into performing actions without their consent. Laravel’s built-in CSRF protection prevents this.
 

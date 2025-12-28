@@ -3,6 +3,7 @@
 1. __NUR SAFIAH ASHIQIN BINTI SHUHANIZAL__ and __2317618__
 2. __NURAIN IZZATI BINTI ABD RAUF__ and __2217978__
 3. __NURSYAZIRA BINTI MOHD NAIM__ and __2214076__
+4. __NUR RAIHAN SYAZWANI BINTI SUHAIMI__ and __2213262__
 
 ## 1.0 Introduction
 
@@ -106,6 +107,68 @@ SESSION_SAME_SITE=strict
 
 __iii. Authorization__
 __iv. XSS and CSRF Prevention__
+This section describes the security measures implemented to protect the UniMeal Laravel application against Cross-Site Scripting (XSS) and Cross-Site Request Forgery (CSRF) attacks. The measures cover all relevant pages and forms, including authentication, checkout, and dashboards. The implementation uses a combination of browser-level, application-level, and framework-level protections.
+
+1. Content Security Policy (CSP) Middleware
+Purpose:
+CSP prevents XSS attacks by controlling which resources (scripts, styles, images, etc.) the browser can load and execute. It acts as a “whitelist” for allowed resources, blocking malicious scripts even if they are injected.
+
+Implementation Details:
+Created middleware ContentSecurityPolicy.php.
+Registered middleware in app.php to apply to all web routes.
+Added HTTP headers including Content-Security-Policy, X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, and Referrer-Policy.
+
+Key CSP Rules:
+default-src 'self' → Only load resources from the same domain.
+script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.bunny.net → Allow scripts from site and specific CDNs.
+style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.bunny.net → Allow styles from site and CDNs.
+img-src 'self' data: https: → Allow images from the site, data URIs, and HTTPS sources.
+frame-ancestors 'none' → Prevent clickjacking.
+form-action 'self' → Only allow form submissions to the same domain.
+
+Security Benefits:
+Blocks XSS script execution.
+Prevents clickjacking.
+Stops unauthorized AJAX requests.
+Adds an extra layer of defense in depth.
+
+
+
+2. Input Validation Against HTML Injection
+Purpose:
+Even with CSP, users could inject harmful HTML that affects layout or causes stored XSS. Server-side validation ensures only clean data is stored.
+
+Implementation Details:
+Added regex validation (regex:/^[^<>]*$/) to disallow < and > in sensitive fields (e.g., name, address).
+Applied in StudentAuthController.php (registration) and CheckoutController.php (checkout forms).
+
+$request->validate([
+    'name' => 'required|string|max:255|regex:/^[^<>]*$/',
+    'address' => 'required|string|max:500|regex:/^[^<>]*$/',
+]);
+
+Security Benefits:
+Prevents stored XSS attacks.
+Ensures data integrity.
+Complements CSP for defense in depth.
+<img width="1920" height="1080" alt="2025-12-29" src="https://github.com/user-attachments/assets/36a9370a-f5ed-4fe9-b470-53c8ddfe1e18" />
+
+
+3. CSRF Token Verification
+Purpose:
+CSRF attacks trick users into performing actions without their consent. Laravel’s built-in CSRF protection prevents this.
+
+Implementation Details:
+Verified all forms include @csrf for hidden tokens.
+AJAX requests use <meta name="csrf-token" content="{{ csrf_token() }}">.
+Laravel validates tokens automatically on state-changing requests (POST, PUT, DELETE).
+
+Security Benefits:
+Blocks unauthorized form submissions.
+Tokens are session-specific and expire on logout.
+No manual code needed; framework handles validation.
+
+
 __v. Database Security Principles__
 Initial Security Audit and Vulnerability Identification
 

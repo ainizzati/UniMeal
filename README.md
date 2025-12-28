@@ -145,11 +145,11 @@ Security Impact
 - Mitigates abuse of checkout logic
 <img width="1919" height="1079" alt="Screenshot 2025-12-29 051520" src="https://github.com/user-attachments/assets/1187d7af-2b33-4105-bfb9-831faa10dd58" />
 
-__iv. XSS and CSRF Prevention__
+## iv. XSS and CSRF Prevention
 
 This section describes the security measures implemented to protect the UniMeal Laravel application against Cross-Site Scripting (XSS) and Cross-Site Request Forgery (CSRF) attacks. The measures cover all relevant pages and forms, including authentication, checkout, and dashboards. The implementation uses a combination of browser-level, application-level, and framework-level protections.
 
-1. Content Security Policy (CSP) Middleware
+__1. Content Security Policy (CSP) Middleware__
 
 Purpose:
 CSP prevents XSS attacks by controlling which resources (scripts, styles, images, etc.) the browser can load and execute. It acts as a “whitelist” for allowed resources, blocking malicious scripts even if they are injected.
@@ -175,7 +175,7 @@ Adds an extra layer of defense in depth.
 
 
 
-2. Input Validation Against HTML Injection
+__2. Input Validation Against HTML Injection__
 
 Purpose:
 Even with CSP, users could inject harmful HTML that affects layout or causes stored XSS. Server-side validation ensures only clean data is stored.
@@ -196,7 +196,7 @@ Complements CSP for defense in depth.
 <img width="1920" height="1080" alt="2025-12-29" src="https://github.com/user-attachments/assets/36a9370a-f5ed-4fe9-b470-53c8ddfe1e18" />
 
 
-3. CSRF Token Verification
+__3. CSRF Token Verification__
 
 Purpose:
 CSRF attacks trick users into performing actions without their consent. Laravel’s built-in CSRF protection prevents this.
@@ -212,7 +212,7 @@ Tokens are session-specific and expire on logout.
 No manual code needed; framework handles validation.
 
 
-__v. Database Security Principles__
+## v. Database Security Principles
 Initial Security Audit and Vulnerability Identification
 
 The following user input points were identified in the UniMeal application where data interacts with the database:

@@ -767,6 +767,7 @@ All database interactions in UniMeal are performed using Laravel’s Eloquent OR
 ```
 php
 $student = Student::where('email',   $request->email)->first();
+```
 
 Security Impact:
 
@@ -792,8 +793,10 @@ Result: All injection attempts were safely rejected.
 
 This uses Laravel Eloquent ORM which internally creates a prepared statement:
 
+```
 $pdo->prepare("SELECT * FROM students WHERE email = ?");
 $pdo->execute([$request->email]);
+```
 
 The injection payload is treated as literal data, not SQL code.
 
@@ -819,6 +822,7 @@ class Order extends Model
         'sales_tax'
     ];
 }
+```
 
 Security Impact:
 
@@ -845,6 +849,7 @@ $table->foreign('student_id')
       ->references('matric_no')
       ->on('students')
       ->onDelete('cascade');
+```
 
 Security Impact:
 
@@ -872,6 +877,7 @@ DB::transaction(function () {
     Order::create([...]);
     Shipping::create([...]);
 });
+```
 
 Security Impact:
 
@@ -894,10 +900,10 @@ Security Principle: Fail Securely, Information Hiding
 
 Environment Configuration:
 
-'''
+```
 APP_ENV=production
 APP_DEBUG=false
-
+```
 
 Security Impact:
 

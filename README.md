@@ -738,7 +738,12 @@ __Security Benefits:__
 
 -No manual code needed; framework handles validation.
 
-
+<img width="1918" height="1078" alt="Screenshot 2025-12-28 231013" src="images/CSRF1.jpeg" />
+<img width="1918" height="1078" alt="Screenshot 2025-12-28 231013" src="images/CSRF2.jpeg" />
+<img width="1918" height="1078" alt="Screenshot 2025-12-28 231013" src="images/CSRF3.jpeg" />
+<img width="1918" height="1078" alt="Screenshot 2025-12-28 231013" src="images/CSRF4.jpeg" />
+<img width="1918" height="1078" alt="Screenshot 2025-12-28 231013" src="images/CSRF5.jpeg" />
+<img width="1918" height="1078" alt="Screenshot 2025-12-28 231013" src="images/CSRF6.jpeg" />
 ## v. Database Security Principles
 Initial Security Audit and Vulnerability Identification
 

@@ -102,3 +102,4 @@ Route::middleware(['auth:student', 'prevent.back'])->group(function () {
     Route::get('/receipt/{order}', [CheckoutController::class, 'receipt'])->name('checkout.receipt');
 
 });
+

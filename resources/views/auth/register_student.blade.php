@@ -68,8 +68,6 @@
             </p>
 
             <div class="mt-4 flex space-x-4">
-                <a href="{{ route('cafeteria.register.form') }}"
-                    class="bg-pink-200 px-4 py-2 rounded hover:bg-pink-300 transition">Cafeteria</a>
                 <button class="bg-teal-400 px-4 py-2 rounded text-white cursor-default">Student</button>
             </div>
         </div>

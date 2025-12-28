@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use App\Models\Order;
 use App\Models\Shipping;
 use App\Models\OrderItem;
@@ -47,22 +48,10 @@ class CheckoutController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             //add phone regex validation
-            'phone' => [
-                        'required',
-                        'string',
-                        'regex:/^(\+?6?01)[0-46-9]-*[0-9]{7,8}$/', // Malaysian format
-                        'min:10',
-                        'max:15'
-                    ],
+            'phone' => 'required|string|max:20',
                     
             //add address max length validation
-            'address' => [
-                        'required',
-                        'string',
-                        'min:10',
-                        'max:500',
-                        'regex:/^[a-zA-Z0-9\s,.\-\/()]+$/' // Allows letters, numbers, common punctuation
-                    ],
+            'address' => 'required|string|max:500',
             'cart.*.quantity' => 'required|integer|min:1|max:100',
         ]);
 
@@ -144,89 +133,168 @@ class CheckoutController extends Controller
 
     public function processPayment(Request $request)
     {
-        $cart = Session::get('cart');
-        $shipping = Session::get('shipping');
-
-        Log::info('Auth student:', ['user' => Auth::guard('student')->user()]);
-        Log::info('Cart:', ['cart' => $cart]);
-        Log::info('Shipping:', ['shipping' => $shipping]);
-        Log::info('Session:', Session::all());
-
-
-        //no payment whitelist validation
-        $validated = $request->validate([
-            'payment_method' => 'required|string',
-        ]);
-
-        //add payment whitelist validation
+        // 1. VALIDATE PAYMENT METHOD ONLY
         $validated = $request->validate([
             'payment_method' => 'required|string|in:cash,credit_card,bank_transfer,other',
         ]);
 
-
+        // 2. VALIDATE USER
         $user = Auth::guard('student')->user();
-
+        
         if (!$user || !$user->matric_no) {
-        Log::error('Student user not authenticated or missing ID.');
-        return redirect()->route('checkout.form')->with('error', 'You must be logged in.');
+            Log::error('Unauthorized payment attempt', [
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+            return redirect()->route('checkout.form')->with('error', 'You must be logged in.');
         }
 
+        // 3. GET DATA FROM SESSION
         $cart = Session::get('cart', []);
         $shipping = Session::get('shipping', []);
         $deliveryOption = Session::get('delivery_option');
-        $shippingFee = Session::get('shipping_fee', 0.00);
-        $subtotal = Session::get('subtotal', 0.00);
-        $salesTax = Session::get('sales_tax', 0.00);
-        $orderTotal = Session::get('order_total', 0.00);
 
-        // Debug: Log delivery option
-        Log::info('Delivery Option from session:', ['delivery_option' => $deliveryOption]);
-
-        if (empty($cart) || empty($shipping)) {
-            return redirect()->route('checkout.form')->with('error', 'Missing order information.');
+        // 4. VALIDATE REQUIRED DATA
+        if (empty($cart)) {
+            Log::warning('Payment attempted with empty cart', ['user' => $user->matric_no]);
+            return redirect()->route('cart.show')->with('error', 'Your cart is empty.');
         }
 
-        // Validate delivery option exists
+        if (empty($shipping) || !isset($shipping['address'])) {
+            Log::warning('Payment attempted without shipping info', ['user' => $user->matric_no]);
+            return redirect()->route('checkout.form')->with('error', 'Shipping information is missing.');
+        }
+
         if (empty($deliveryOption)) {
-            Log::error('Delivery option is missing from session');
+            Log::warning('Payment attempted without delivery option', ['user' => $user->matric_no]);
             return redirect()->route('checkout.delivery')->with('error', 'Please select a delivery option.');
         }
 
+        // 5. RECALCULATE EVERYTHING SERVER-SIDE (don't trust session!)
+        $deliveryFees = [
+            'Pick Up' => 0.00,
+            '15 - 20 Minutes' => 3.00,
+            'Now' => 5.00,
+        ];
 
-
-        $order = Order::create([
-            'student_id' => $user->matric_no,
-            'total_amount' => $orderTotal,
-            'status' => 'Pending',
-            'address' => $shipping['address'],
-            'delivery_option' => $deliveryOption,
-            'payment_method' => $validated['payment_method'],
-            'shipping_fee' => $shippingFee,
-            'sales_tax' => $salesTax,
-        ]);
-
-        Shipping::create([
-            'order_id' => $order->id,
-            'name' => $shipping['name'],
-            'phone' => $shipping['phone'],
-            'address' => $shipping['address'],
-        ]);
-
-
-
-        foreach ($cart as $item) {
-            OrderItem::create([
-                'order_id' => $order->id,
-                'name' => $item['name'],
-                'price' => $item['price'],
-                'image' => $item['image'],
-                'quantity' => $item['quantity'],
+        // Validate delivery option
+        if (!array_key_exists($deliveryOption, $deliveryFees)) {
+            Log::error('Invalid delivery option in payment', [
+                'user' => $user->matric_no,
+                'option' => $deliveryOption
             ]);
+            return redirect()->route('checkout.delivery')->with('error', 'Invalid delivery option.');
         }
 
-        Session::forget([ 'cart', 'shipping', 'delivery_option', 'shipping_fee', 'subtotal', 'sales_tax', 'order_total' ]);
+        $shippingFee = $deliveryFees[$deliveryOption];
+        
+        // Recalculate cart totals and validate items
+        $subtotal = 0;
+        foreach ($cart as $item) {
+            // Validate each item structure
+            if (!isset($item['price']) || !isset($item['quantity']) || !isset($item['name'])) {
+                Log::error('Invalid cart item structure', [
+                    'user' => $user->matric_no,
+                    'item' => $item
+                ]);
+                return redirect()->route('cart.show')->with('error', 'Invalid cart data. Please review your cart.');
+            }
+            
+            // Validate positive numbers
+            if ($item['price'] <= 0 || $item['quantity'] < 1) {
+                Log::error('Invalid cart item values', [
+                    'user' => $user->matric_no,
+                    'item' => $item
+                ]);
+                return redirect()->route('cart.show')->with('error', 'Invalid item prices or quantities.');
+            }
 
-        return redirect()->route('checkout.receipt', ['order' => $order->id])->with('success', 'Payment processed!');
+            // Validate reasonable quantity (prevent abuse)
+            if ($item['quantity'] > 100) {
+                Log::warning('Excessive quantity in cart', [
+                    'user' => $user->matric_no,
+                    'item' => $item
+                ]);
+                return redirect()->route('cart.show')->with('error', 'Quantity per item cannot exceed 100.');
+            }
+            
+            $subtotal += $item['price'] * $item['quantity'];
+        }
+
+        // Calculate tax and total
+        $salesTax = round($subtotal * 0.065, 2);
+        $orderTotal = round($subtotal + $salesTax + $shippingFee, 2);
+
+        // 6. VALIDATE AMOUNTS ARE REASONABLE
+        if ($orderTotal <= 0 || $orderTotal > 10000) {
+            Log::error('Suspicious order total', [
+                'user' => $user->matric_no,
+                'total' => $orderTotal,
+                'subtotal' => $subtotal,
+                'tax' => $salesTax,
+                'shipping' => $shippingFee
+            ]);
+            return redirect()->route('cart.show')->with('error', 'Order total is invalid. Please contact support.');
+        }
+
+        // 7. CREATE ORDER WITH TRANSACTION (for data consistency)
+        try {
+            DB::beginTransaction();
+
+            $order = Order::create([
+                'student_id' => $user->matric_no,
+                'total_amount' => $orderTotal, // Server-calculated
+                'status' => 'Pending',
+                'address' => $shipping['address'],
+                'delivery_option' => $deliveryOption,
+                'payment_method' => $validated['payment_method'],
+                'shipping_fee' => $shippingFee, // Server-calculated
+                'sales_tax' => $salesTax, // Server-calculated
+            ]);
+
+            Shipping::create([
+                'order_id' => $order->id,
+                'name' => $shipping['name'],
+                'phone' => $shipping['phone'],
+                'address' => $shipping['address'],
+            ]);
+
+            foreach ($cart as $item) {
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'name' => $item['name'],
+                    'price' => $item['price'],
+                    'image' => $item['image'] ?? null,
+                    'quantity' => $item['quantity'],
+                ]);
+            }
+
+            DB::commit();
+
+            Log::info('Order created successfully', [
+                'order_id' => $order->id,
+                'user' => $user->matric_no,
+                'total' => $orderTotal
+            ]);
+
+            // Clear session only after successful order
+            Session::forget(['cart', 'shipping', 'delivery_option', 'shipping_fee', 'subtotal', 'sales_tax', 'order_total']);
+
+            return redirect()->route('checkout.receipt', ['order' => $order->id])
+                ->with('success', 'Order placed successfully!');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Order creation failed', [
+                'user' => $user->matric_no,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return redirect()->route('checkout.form')
+                ->with('error', 'Failed to process order. Please try again or contact support.');
+        }
     }
 
     public function receipt($orderId)

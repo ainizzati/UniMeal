@@ -12,22 +12,22 @@
             <h1 class="text-3xl font-bold mb-2">Login to your Account</h1>
             <p class="mb-6 text-gray-500">Hi, Welcome to UniMeal</p>
 
-            @if ($errors->any())
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($errors->any()): ?>
                 <div class="text-red-500 mb-4">
-                    @foreach ($errors->all() as $error)
-                        <p>{{ $error }}</p>
-                    @endforeach
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <p><?php echo e($error); ?></p>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
-            @endif
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-            <form action="{{ route('login.post') }}" method="POST" class="w-full max-w-sm">
-                @csrf
+            <form action="<?php echo e(route('login.post')); ?>" method="POST" class="w-full max-w-sm">
+                <?php echo csrf_field(); ?>
 
                 <input
                     type="email"
                     name="email"
                     placeholder="Email"
-                    value="{{ old('email') }}"
+                    value="<?php echo e(old('email')); ?>"
                     class="w-full mb-4 p-3 border rounded focus:outline-none focus:ring focus:border-blue-300"
                     required
                 >
@@ -45,7 +45,7 @@
                         <input type="checkbox" name="remember" class="mr-2">
                         Remember me
                     </label>
-                    <a href="{{ route('password.request') }}" class="text-blue-500 hover:underline">
+                    <a href="<?php echo e(route('password.request')); ?>" class="text-blue-500 hover:underline">
                         Forgot Password?
                     </a>
                 </div>
@@ -60,14 +60,14 @@
 
             <p class="mt-6 text-gray-500">
                 Don’t have an account?
-                <a href="{{ route('student.register.form') }}" class="text-blue-500 font-semibold hover:underline">
+                <a href="<?php echo e(route('student.register.form')); ?>" class="text-blue-500 font-semibold hover:underline">
                     Create an account
                 </a>
             </p>
 
             <!-- ✅ Updated Button Section with Matching Styles -->
             <div class="mt-4 flex space-x-4">
-                <a href="{{ route('student.register.form') }}"
+                <a href="<?php echo e(route('student.register.form')); ?>"
                    class="bg-pink-200 px-4 py-2 rounded hover:bg-pink-300 transition">
                     Register as Student
                 </a>
@@ -77,8 +77,9 @@
         <!-- Right Panel -->
         <div class="w-1/2 flex flex-col justify-center items-center bg-pink-100">
             <h2 class="text-3xl font-bold text-black mb-4">Skip the Line, Not the Meal!!!</h2>
-            <img src="{{ asset('images/unimeal_logo2.png') }}" alt="UniMeal Logo" class="w-80">
+            <img src="<?php echo e(asset('images/unimeal_logo2.png')); ?>" alt="UniMeal Logo" class="w-80">
         </div>
     </div>
 </body>
 </html>
+<?php /**PATH C:\xampp\htdocs\UniMeal\resources\views/auth/login.blade.php ENDPATH**/ ?>

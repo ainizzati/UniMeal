@@ -368,7 +368,7 @@
             <div class="row">
                 <div class="col-lg-6">
                     <div class="logo">
-                        <a href="{{ route('checkout.delivery') }}">
+                        <a href="<?php echo e(route('checkout.delivery')); ?>">
                             <i class="fa fa-arrow-left" style="color:grey;"></i>
                             <img src="images/unimeal_logo2.png" alt="logo">
                         </a>
@@ -412,29 +412,30 @@
                                 <tbody>
                                    <!-- Inside the table in your checkout view -->
                                     <tbody>
-                                        @forelse ($cart as $item)
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $cart; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                                             <tr>
                                                 <td>
-                                                    @if (!empty($item['image']))
-                                                        <img src="{{ asset('images/' . $item['image']) }}" alt="{{ $item['name'] }}" style="max-width: 50px;">
-                                                    @else
+                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!empty($item['image'])): ?>
+                                                        <img src="<?php echo e(asset('images/' . $item['image'])); ?>" alt="<?php echo e($item['name']); ?>" style="max-width: 50px;">
+                                                    <?php else: ?>
                                                         <span>No image</span>
-                                                    @endif
+                                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                 </td>
-                                                <td>{{ $item['name'] }}</td>
-                                                <td>RM{{ number_format($item['price'], 2) }}</td>
+                                                <td><?php echo e($item['name']); ?></td>
+                                                <td>RM<?php echo e(number_format($item['price'], 2)); ?></td>
                                                 <td>
                                                     <span style="display: inline-block; width: 40px; text-align: center;">
-                                                        {{ $item['quantity'] }}
+                                                        <?php echo e($item['quantity']); ?>
+
                                                     </span>
                                                 </td>
-                                                <td>RM{{ number_format($item['price'] * $item['quantity'], 2) }}</td>
+                                                <td>RM<?php echo e(number_format($item['price'] * $item['quantity'], 2)); ?></td>
                                             </tr>
-                                        @empty
+                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                             <tr>
                                                 <td colspan="5">Your cart is empty.</td>
                                             </tr>
-                                        @endforelse
+                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                     </tbody>
 
                                 </tbody>
@@ -450,95 +451,22 @@
                         </div>
 
                         <ul class="order-table list-unstyled mt-3">
-                            <li class="fw-normal">Subtotal <span id="subtotal">RM{{ number_format($subtotal, 2) }}</span></li>
-                            <li class="fw-normal">Sales tax (6.5%) <span id="sales-tax">RM{{ number_format($salesTax, 2) }}</span></li>
-                            <li class="fw-normal">Shipping fee <span id="shipping-fee">RM{{ number_format($shippingFee, 2) }}</span></li>
-                            <li class="total-price">Total <span id="order-total">RM{{ number_format($orderTotal, 2) }}</span></li>
+                            <li class="fw-normal">Subtotal <span id="subtotal">RM<?php echo e(number_format($subtotal, 2)); ?></span></li>
+                            <li class="fw-normal">Sales tax (6.5%) <span id="sales-tax">RM<?php echo e(number_format($salesTax, 2)); ?></span></li>
+                            <li class="fw-normal">Shipping fee <span id="shipping-fee">RM<?php echo e(number_format($shippingFee, 2)); ?></span></li>
+                            <li class="total-price">Total <span id="order-total">RM<?php echo e(number_format($orderTotal, 2)); ?></span></li>
                         </ul>
                     </div>
                 </div>
             </div>
 
-            {{-- <!-- Right: Payment Methods -->
-            <div class="col-lg-6">
-                <h4 class="mb-4">Payment Methods</h4>
-
-                <!-- SINGLE FORM for both payment method selection and order processing -->
-                <form action="{{ route('checkout.payment.process') }}" method="POST" id="payment-form">
-                    @csrf
-
-                    <!-- Session-based values -->
-                    <input type="hidden" name="matric_no" value="{{ Auth::guard('student')->user()->matric_no }}">
-                    <input type="hidden" name="cafeteria_id" value="{{ session('cafeteria_id') }}">
-                    <input type="hidden" name="address" value="{{ session('shipping.address') }}">
-                    <input type="hidden" name="subtotal" value="{{ session('subtotal') }}">
-                    <input type="hidden" name="sales_tax" value="{{ session('sales_tax') }}">
-                    <input type="hidden" name="shipping_fee" value="{{ session('shipping_fee') }}">
-                    <input type="hidden" name="total_amount" value="{{ session('order_total') }}">
-
-                    <!-- Pay on Delivery -->
-                    <div class="payment-option d-flex align-items-start">
-                        <input class="form-check-input small-radio me-3" type="radio" name="payment_method" id="cod" value="cash" required>
-                        <label class="form-check-label flex-grow-1" for="cod">
-                            <strong>Pay on Delivery</strong><br>
-                            <small class="text-muted">Pay with cash on delivery</small>
-                        </label>
-                    </div>
-
-                    <!-- Credit/Debit Cards -->
-                    <div class="payment-option d-flex align-items-start">
-                        <input class="form-check-input small-radio me-3" type="radio" name="payment_method" id="card" value="credit_card">
-                        <label class="form-check-label flex-grow-1" for="card">
-                            <strong>Credit/Debit Cards</strong><br>
-                            <small class="text-muted">Pay with your Credit / Debit Card</small>
-                        </label>
-                    </div>
-
-                    <!-- Card Details -->
-                    <div class="card-details ms-4" id="card-details" style="display:none;">
-                        <div class="row">
-                            <div class="col-12 mb-3">
-                                <input type="text" class="form-control" placeholder="Card Number" name="card_number">
-                            </div>
-                            <div class="col-6 mb-2">
-                                <input type="text" class="form-control" placeholder="MM / YY" name="expiry_date">
-                            </div>
-                            <div class="col-6 mb-2">
-                                <input type="text" class="form-control" placeholder="CVV" name="cvv">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Bank Transfer -->
-                    <div class="payment-option d-flex align-items-start">
-                        <input class="form-check-input small-radio me-3" type="radio" name="payment_method" id="bank" value="bank_transfer">
-                        <label class="form-check-label flex-grow-1" for="bank">
-                            <strong>Direct Bank Transfer</strong><br>
-                            <small class="text-muted">Make payment directly through bank account</small>
-                        </label>
-                    </div>
-
-                    <!-- Other Methods -->
-                    <div class="payment-option d-flex align-items-start">
-                        <input class="form-check-input small-radio me-3" type="radio" name="payment_method" id="other" value="other">
-                        <label class="form-check-label flex-grow-1" for="other">
-                            <strong>Other Payment Methods</strong><br>
-                            <small class="text-muted">Pay with GPay, PayPal, Paytm, etc.</small>
-                        </label>
-                    </div>
-
-                    <!-- Place Order Button -->
-                    <div class="order-btn mt-4">
-                        <button type="submit" class="site-btn place-btn" style="float: right;">Place Order</button>
-                    </div>
-                </form>
-            </div> --}}
+            
             <!-- Right: Payment Methods -->
             <div class="col-lg-6">
                 <h4 class="mb-4">Payment Methods</h4>
 
-                <form action="{{ route('checkout.payment.process') }}" method="POST" id="payment-form">
-                    @csrf
+                <form action="<?php echo e(route('checkout.payment.process')); ?>" method="POST" id="payment-form">
+                    <?php echo csrf_field(); ?>
 
                     <!-- ✅ ONLY send payment method - NO amounts! -->
                     
@@ -630,3 +558,4 @@
 </script>
 </body>
 </html>
+<?php /**PATH C:\xampp\htdocs\UniMeal\resources\views/checkout/payment.blade.php ENDPATH**/ ?>

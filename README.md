@@ -861,6 +861,8 @@ Testing Performed:
 
 - Manual insertion of orders with invalid student_id
 
+- <img width="1919" height="850" alt="image" src="https://github.com/user-attachments/assets/3ec4925b-5857-4b1b-af2b-c513fc830eec" />
+
 Result: Database rejected invalid records.
 
 

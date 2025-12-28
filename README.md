@@ -93,9 +93,10 @@ public function register(Request $request)
             'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$/'
         ],
     ]);
-    // ... registration logic
 }
 ```
+
+
 
 __Client-Side JavaScript Validation:__
 
@@ -120,8 +121,12 @@ document.querySelector('form').addEventListener('submit', function(e) {
 });
 ```
 
+
+
 __2. Login Form Validation__
-The login endpoint (/login) handles authentication credentials and must validate input to prevent injection attacks and ensure proper data types.
+
+/nThe login endpoint (/login) handles authentication credentials and must validate input to prevent injection attacks and ensure proper data types.
+
 
 Implemented Security Controls:
 - Email: Required, must be valid email format
@@ -138,8 +143,11 @@ Code Snippet:
 }
 ```
 
+
+
 __3. Cart Input Validation__
 The cart functionality handles product data that could be manipulated to exploit pricing or inject malicious content.
+
 
 __Add to Cart Validation (CartController::add)__
 
@@ -172,6 +180,8 @@ Code Snippet:
       ];
    }
 ```
+
+
 
 __Update Cart Quantity Validation (CartController::update)__
 
@@ -211,6 +221,8 @@ Code Snippet:
    }
 ```
 
+
+
 __Remove Cart Item Validation (CartController::remove)__
 Implemented Security Controls:
 
@@ -238,9 +250,13 @@ Code Snippet:
 }
 ```
 
+
+
 __4. Checkout Form Validation__
 
 The checkout process handles sensitive shipping and payment information requiring comprehensive validation.
+
+
 
 __Shipping Information Validation (CheckoutController::process)__
 Implemented Security Controls:
@@ -290,6 +306,8 @@ public function process(Request $request)
 }
 ```
 
+
+
 __Delivery Option Validation (CheckoutController::processDelivery)__
 Implemented Security Controls:
 
@@ -315,6 +333,8 @@ Code Snippet:
     Session::put('shipping_fee', $deliveryFee);
 }
 ```
+
+
 
 __Payment Method Validation (CheckoutController::processPayment)__
 Implemented Security Controls:
@@ -414,6 +434,8 @@ public function processPayment(Request $request)
 }
 ```
 
+
+
 __5. Mahallah Selection Validation__
 
 The mahallah (cafeteria) selection endpoint accepts user input that determines which menu to display and must be validated to prevent path traversal and injection attacks.
@@ -444,6 +466,8 @@ public function show(Request $request, $mahallah)
 }
 ```
 
+
+
 __Search Parameter Validation__
 
 Implemented Security Controls:
@@ -472,6 +496,8 @@ if ($search) {
 }
 ```
 
+
+
 __6. Order Tracking Validation__
 
 The order tracking endpoint accepts order IDs that must be validated to prevent unauthorized access and type juggling attacks.
@@ -499,6 +525,8 @@ Code Snippet:
     return view('orders.track', compact('order'));
 }
 ```
+
+
 __Similarly for Receipt Viewing (CheckoutController::receipt)__
 
 ```

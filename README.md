@@ -125,7 +125,7 @@ document.querySelector('form').addEventListener('submit', function(e) {
 
 __2. Login Form Validation__
 
-/nThe login endpoint (/login) handles authentication credentials and must validate input to prevent injection attacks and ensure proper data types.
+The login endpoint (/login) handles authentication credentials and must validate input to prevent injection attacks and ensure proper data types.
 
 
 Implemented Security Controls:
@@ -146,6 +146,7 @@ Code Snippet:
 
 
 __3. Cart Input Validation__
+
 The cart functionality handles product data that could be manipulated to exploit pricing or inject malicious content.
 
 
@@ -224,6 +225,7 @@ Code Snippet:
 
 
 __Remove Cart Item Validation (CartController::remove)__
+
 Implemented Security Controls:
 
 - Index Bounds Checking: Validates index is within valid range before removal
@@ -309,6 +311,7 @@ public function process(Request $request)
 
 
 __Delivery Option Validation (CheckoutController::processDelivery)__
+
 Implemented Security Controls:
 
 - Delivery Option: Required, string, must be one of: "Pick Up", "15 - 20 Minutes", "Now"
@@ -337,6 +340,7 @@ Code Snippet:
 
 
 __Payment Method Validation (CheckoutController::processPayment)__
+
 Implemented Security Controls:
 
 - Payment Method: Required, string, must be one of: "cash", "credit_card", "bank_transfer", "other"

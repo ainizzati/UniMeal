@@ -47,6 +47,137 @@ The UniMeal web application aims to deliver an efficient, user-friendly, and cen
 
 7) Responsive Design
    - Optimised for desktop for easy access on a laptop.
+  
+## Web Application Security Enhancements
+__i. Input Validation__
+__ii. Authentication__
+__iii. Authorization__
+__iv. XSS and CSRF Prevention__
+__v. Database Security Principles__
+Initial Security Audit and Vulnerability Identification
+
+The following user input points were identified in the UniMeal application where data interacts with the database:
+
+- Student login form (/login)
+- Student registration (/register/student)
+- Order tracking by ID (/orders/track/{id})
+- Menu search (/cafeteria/{mahallah}?search=)
+
+Test 1: Single Quote Injection
+- Test input:
+- Email: abubakar@gmail.com’
+- Expected (if vulnerable): SQL syntax error exposed
+- Result: Browser validation error, “A part following ‘@’ should now contain the symbol
+
+<img width="1919" height="965" alt="image" src="https://github.com/user-attachments/assets/b8c108fe-5865-4d16-95bd-c2da1eaa6cad" />
+
+Code snippets:
+
+// StudentAuthController.php:41-46
+$request->validate([
+    'email' => 'required|email',  // Validates format
+    'password' => 'required|string',
+]);
+
+$student = Student::where('email', $request->email)->first(); // Parameterized query
+
+Test 2: Authentication Bypass Attempt
+Test input:
+Email: admin@iium.edu.my ‘ OR ‘1’=’1’ --
+Password: anything
+Result: Browser validation error, “A part following ‘@’ should now contain the symbol
+
+
+Reason:
+
+// StudentAuthController.php:46
+$student = Student::where('email', $request->email)->first();
+
+This uses Laravel Eloquent ORM which internally creates a prepared statement:
+
+$pdo->prepare("SELECT * FROM students WHERE email = ?");
+$pdo->execute([$request->email]);
+
+The injection payload is treated as literal data, not SQL code.
+
+Test 3: SQL Comment Injection
+Test input:
+Email: ain@gmail.com' --
+Password: 1234
+Expected (if vulnerable): SQL syntax error exposed
+Result: Browser validation error, “A part following ‘@’ should now contain the symbol
+
+<img width="1919" height="969" alt="image" src="https://github.com/user-attachments/assets/b4d3748b-898e-4529-8269-f8837b2b5f67" />
+
+Reason:
+Client-side HTML5 validation rejected input before reaching the server.
+Even if bypassed, server-side email validation would reject it.
+Even if both are bypassed, Eloquent ORM would treat the entire string as literal data.
+
+__Hardening Error Handling__
+Current Configuration:
+APP_ENV=local
+APP_DEBUG=true
+Production Configuration Required:
+APP_ENV=production
+APP_DEBUG=false
+
+Test: Trigger Database Error
+Change to wrong database name in .env file:
+DB_DATABASE=uni_meal
+
+<img width="1320" height="672" alt="image" src="https://github.com/user-attachments/assets/a2be0e7d-b280-4491-87f2-c72bdd765601" />
+
+Test: Production Configuration
+Change .env file to production settings:
+APP_ENV=production
+APP_DEBUG=false
+
+<img width="1331" height="681" alt="image" src="https://github.com/user-attachments/assets/17f3a8d3-3ce1-4e20-b68e-6451a75e4363" />
+
+__Generic Error Page:__
+- Current Setup:
+- Laravel default error pages active
+- Location: resources/views/errors/
+Recommendation: Create custom error pages:
+- resources/views/errors/500.blade.php (Server Error)
+- resources/views/errors/403.blade.php (Forbidden)
+- resources/views/errors/404.blade.php (Not Found)
+
+For Production: These will automatically hide sensitive error information when APP_DEBUG=false
+
+Framework Configuration (Laravel):
+- Error Handling: Configured in app/Exceptions/Handler.php
+- Automatically hides internal errors in production mode
+- Logs detailed errors to storage/logs/laravel.log
+- Shows generic messages to users
+
+__Authorization and Insecure Direct Object References (IDOR)__
+
+Test: Attempt Unauthorized Access
+Student A creates an order.
+Logout Student A, login as Student B.
+Student B tries to access that same order via URL (/orders/track/{id}).
+
+Code snippets:
+
+
+public function track($id)
+{
+    $order = Order::with(['orderItems', 'shipping'])->findOrFail($id);
+
+    // Authorization check
+    if ($order->student_id !== Auth::guard('student')->id()) {
+        abort(403);
+    }
+
+    return view('orders.track', compact('order'));
+}
+
+<img width="1222" height="631" alt="image" src="https://github.com/user-attachments/assets/7fc8c154-7a59-4917-8c0f-6298470253f7" />
+
+
+__vi. File Security Principles__
 
 ## 4.0 Entity Relationship Diagram (ERD)
 

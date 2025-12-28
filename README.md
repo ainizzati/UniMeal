@@ -151,93 +151,93 @@ This section describes the security measures implemented to protect the UniMeal 
 
 __1. Content Security Policy (CSP) Middleware__
 
-Purpose:
+__Purpose:__
 
 CSP prevents XSS attacks by controlling which resources (scripts, styles, images, etc.) the browser can load and execute. It acts as a “whitelist” for allowed resources, blocking malicious scripts even if they are injected.
 
-Implementation Details:
+__Implementation Details:__
 
-Created middleware ContentSecurityPolicy.php.
+-Created middleware ContentSecurityPolicy.php.
 
-Registered middleware in app.php to apply to all web routes.
+-Registered middleware in app.php to apply to all web routes.
 
-Added HTTP headers including Content-Security-Policy, X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, and Referrer-Policy.
+-Added HTTP headers including Content-Security-Policy, X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, and Referrer-Policy.
 
-Key CSP Rules:
+__Key CSP Rules:__
 
-default-src 'self' → Only load resources from the same domain.
+-default-src 'self' → Only load resources from the same domain.
 
-script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.bunny.net → Allow scripts from site and specific CDNs.
+-script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.bunny.net → Allow scripts from site and specific CDNs.
 
-style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.bunny.net → Allow styles from site and CDNs.
+-style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.bunny.net → Allow styles from site and CDNs.
 
-img-src 'self' data: https: → Allow images from the site, data URIs, and HTTPS sources.
+-img-src 'self' data: https: → Allow images from the site, data URIs, and HTTPS sources.
 
-frame-ancestors 'none' → Prevent clickjacking.
+-frame-ancestors 'none' → Prevent clickjacking.
 
-form-action 'self' → Only allow form submissions to the same domain.
+-form-action 'self' → Only allow form submissions to the same domain.
 
-Security Benefits:
+__Security Benefits:__
 
-Blocks XSS script execution.
+-Blocks XSS script execution.
 
-Prevents clickjacking.
+-Prevents clickjacking.
 
-Stops unauthorized AJAX requests.
+-Stops unauthorized AJAX requests.
 
-Adds an extra layer of defense in depth.
+-Adds an extra layer of defense in depth.
 
 
 
 __2. Input Validation Against HTML Injection__
 
-Purpose:
+__Purpose:__
 
 Even with CSP, users could inject harmful HTML that affects layout or causes stored XSS. Server-side validation ensures only clean data is stored.
 
-Implementation Details:
+__Implementation Details:__
 
-Added regex validation (regex:/^[^<>]*$/) to disallow < and > in sensitive fields (e.g., name, address).
+-Added regex validation (regex:/^[^<>]*$/) to disallow < and > in sensitive fields (e.g., name, address).
 
-Applied in StudentAuthController.php (registration) and CheckoutController.php (checkout forms).
+A-pplied in StudentAuthController.php (registration) and CheckoutController.php (checkout forms).
 
 $request->validate([
     'name' => 'required|string|max:255|regex:/^[^<>]*$/',
     'address' => 'required|string|max:500|regex:/^[^<>]*$/',
 ]);
 
-Security Benefits:
+__Security Benefits:__
 
-Prevents stored XSS attacks.
+-Prevents stored XSS attacks.
 
-Ensures data integrity.
+-Ensures data integrity.
 
-Complements CSP for defense in depth.
+-Complements CSP for defense in depth.
 
 <img width="1920" height="1080" alt="2025-12-29" src="https://github.com/user-attachments/assets/36a9370a-f5ed-4fe9-b470-53c8ddfe1e18" />
 
 
 __3. CSRF Token Verification__
 
-Purpose:
+__Purpose:__
 
 CSRF attacks trick users into performing actions without their consent. Laravel’s built-in CSRF protection prevents this.
 
-Implementation Details:
+__Implementation Details:__
 
-Verified all forms include @csrf for hidden tokens.
+-Verified all forms include @csrf for hidden tokens.
 
-AJAX requests use <meta name="csrf-token" content="{{ csrf_token() }}">.
+-AJAX requests use <meta name="csrf-token" content="{{ csrf_token() }}">.
 
-Laravel validates tokens automatically on state-changing requests (POST, PUT, DELETE).
+-Laravel validates tokens automatically on state-changing requests (POST, PUT, DELETE).
 
-Security Benefits:
+__Security Benefits:__
 
-Blocks unauthorized form submissions.
+-Blocks unauthorized form submissions.
 
-Tokens are session-specific and expire on logout.
+-Tokens are session-specific and expire on logout.
 
-No manual code needed; framework handles validation.
+-No manual code needed; framework handles validation.
 
 
 ## v. Database Security Principles

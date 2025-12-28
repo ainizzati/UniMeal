@@ -51,29 +51,470 @@ The UniMeal web application aims to deliver an efficient, user-friendly, and cen
   
 ## Web Application Security Enhancements
 ## i. Input Validation
-During the initial security audit, the student registration endpoint /register/student was identified as a critical entry point. Weak password policies and insufficient input validation could expose the system to:
+Input validation is the first line of defense against various web application attacks including SQL injection, XSS, command injection, and business logic exploitation. Both client-side and server-side validation were implemented across all user input points to ensure data integrity and security.
 
-- Brute force attacks using weak passwords
-- Credential stuffing with compromised passwords
-- SQL injection through unsanitized user inputs
-- XSS attacks through malicious name inputs
+__1. Registation Form Validation__
 
 Implemented Security Controls:
 
+__Client-Side Validation (register_student.blade.php):__
+
+- Real-time password strength checking using JavaScript
+- Password confirmation matching before form submission
+- Immediate user feedback on validation errors
+
+__Server-Side Validation (StudentAuthController):__
+- Matric Number: Integer type, must be unique in database
+- Name: String, maximum 255 characters, regex pattern to prevent HTML tags (/^[^<>]*$/)
+- Email: Valid email format, must be unique in database
+- Password:
+   - Minimum 10 characters
+   - Must contain at least one lowercase letter
+   - Must contain at least one uppercase letter
+   - Must contain at least one digit
+   - Must contain at least one special character (@$!%*?&#)
+   - Regex pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$/
+- Password Confirmation: Must match password field
+
+Code Snippet:
+
 ```
-// StudentAuthController::register()
-$request->validate([
-    'matric_no' => 'required|integer|unique:students,matric_no',
-    'name' => 'required|string|max:255|regex:/^[^<>]*$/',
-    'email' => 'required|email|unique:students,email',
-    'password' => [
-        'required',
-        'string',
-        'min:10',                    // Minimum 10 characters
-        'confirmed',                  // Must match confirmation field
-        'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$/'
-    ],
+public function register(Request $request)
+{
+    $request->validate([
+        'matric_no' => 'required|integer|unique:students,matric_no',
+        'name' => 'required|string|max:255|regex:/^[^<>]*$/',
+        'email' => 'required|email|unique:students,email',
+        'password' => [
+            'required',
+            'string',
+            'min:10',
+            'confirmed',
+            'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$/'
+        ],
+    ]);
+    // ... registration logic
+}
+```
+
+__Client-Side JavaScript Validation:__
+
+```
+document.querySelector('form').addEventListener('submit', function(e) {
+    const password = document.querySelector('input[name="password"]').value;
+    const confirm = document.querySelector('input[name="password_confirmation"]').value;
+
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{10,}$/;
+
+    if (!regex.test(password)) {
+        e.preventDefault();
+        alert('Password must be at least 10 characters with uppercase, lowercase, number, and special character.');
+        return false;
+    }
+
+    if (password !== confirm) {
+        e.preventDefault();
+        alert('Passwords do not match!');
+        return false;
+    }
+});
+```
+
+__2. Login Form Validation__
+The login endpoint (/login) handles authentication credentials and must validate input to prevent injection attacks and ensure proper data types.
+
+Implemented Security Controls:
+- Email: Required, must be valid email format
+- Password: Required, must be string type
+
+Code Snippet:
+```
+   public function login(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email',
+        'password' => 'required|string',
+    ]);
+}
+```
+
+__3. Cart Input Validation__
+The cart functionality handles product data that could be manipulated to exploit pricing or inject malicious content.
+
+__Add to Cart Validation (CartController::add)__
+
+Implemented Security Controls:
+
+- Product Name: Required, string, maximum 255 characters
+- Price: Required, numeric, minimum 0, maximum 9999.99
+- Image Path: Required, string, maximum 500 characters
+- Price Sanitization: Uses floatval() with regex to strip non-numeric characters
+
+Code Snippet:
+
+```
+   public function add(Request $request)
+   {
+      $validated = $request->validate([
+         'name' => 'required|string|max:255',
+         'price' => 'required|numeric|min:0|max:9999.99',
+         'image' => 'required|string|max:500',
+      ]);
+
+      // Convert price to float safely
+      $price = floatval(preg_replace('/[^0-9.]/', '', $request->price));
+
+      $cart[] = [
+         'name' => $validated['name'],
+         'price' => $validated['price'],
+         'image' => $validated['image'],
+         'quantity' => 1,
+      ];
+   }
+```
+
+__Update Cart Quantity Validation (CartController::update)__
+
+Implemented Security Controls:
+
+- Action Parameter: Required, string, must be either "increase" or "decrease"
+- Index Parameter: Type-cast to integer, must be non-negative and within cart bounds
+
+Code Snippet:
+```
+      public function update(Request $request, $index)
+   {
+      // Validate action parameter
+      $validated = $request->validate([
+         'action' => 'required|string|in:increase,decrease',
+      ]);
+
+      // Validate and type-cast index
+      $index = (int) $index;
+
+      if ($index < 0) {
+         abort(400);
+      }
+
+      $cart = Session::get('cart', []);
+
+      if (!isset($cart[$index])) {
+         abort(404);
+      }
+
+      // Use validated action
+      if ($validated['action'] === 'increase') {
+         $cart[$index]['quantity'] += 1;
+      } elseif ($validated['action'] === 'decrease' && $cart[$index]['quantity'] > 1) {
+         $cart[$index]['quantity'] -= 1;
+      }
+   }
+```
+
+__Remove Cart Item Validation (CartController::remove)__
+Implemented Security Controls:
+
+- Index Bounds Checking: Validates index is within valid range before removal
+- Type Casting: Converts index to integer to prevent type juggling attacks
+
+Code Snippet:
+
+```
+   public function remove($index)
+{
+    $index = (int) $index;
+    $cart = Session::get('cart', []);
+    
+    // Add bounds checking
+    if ($index < 0 || $index >= count($cart)) {
+        abort(404, 'Invalid cart item');
+    }
+
+    if (!isset($cart[$index])) {
+        abort(404, 'Cart item not found');
+    }
+    
+    unset($cart[$index]);
+}
+```
+
+__4. Checkout Form Validation__
+
+The checkout process handles sensitive shipping and payment information requiring comprehensive validation.
+
+__Shipping Information Validation (CheckoutController::process)__
+Implemented Security Controls:
+
+Name:
+- Required, string, maximum 255 characters
+- Regex pattern to allow only letters and spaces: /^[a-zA-Z\s]+$/
+
+
+Phone Number:
+- Required, string
+- Regex pattern for Malaysian phone format: /^(\+?6?01)[0-46-9]-*[0-9]{7,8}$/
+- Custom error message for user guidance
+
+
+Address:
+- Required, string, maximum 500 characters
+- Regex pattern to prevent HTML tags: /^[^<>]*$/
+
+
+Cart Quantities:
+- Required, integer
+- Minimum 1, maximum 100 per item
+
+Code Snippet
+
+```
+public function process(Request $request)
+{
+    $validated = $request->validate([
+        'name' => [
+            'required',
+            'string',
+            'max:255',
+            'regex:/^[a-zA-Z\s]+$/',
+        ],
+        'phone' => [
+            'required',
+            'string',
+            'regex:/^(\+?6?01)[0-46-9]-*[0-9]{7,8}$/',
+        ],
+        'address' => 'required|string|max:500|regex:/^[^<>]*$/',
+        'cart.*.quantity' => 'required|integer|min:1|max:100',
+    ], [
+        'phone.regex' => 'Please make sure the phone number is in Malaysian Phone Format (e.g., 012-3456789 or +6012-3456789).',
+    ]);
+}
+```
+
+__Delivery Option Validation (CheckoutController::processDelivery)__
+Implemented Security Controls:
+
+- Delivery Option: Required, string, must be one of: "Pick Up", "15 - 20 Minutes", "Now"
+- Server-Side Fee Calculation: Delivery fee calculated server-side instead of trusting client input
+
+Code Snippet:
+```
+   public function processDelivery(Request $request)
+{
+    $validated = $request->validate([
+        'delivery_option' => 'required|string|in:Pick Up,15 - 20 Minutes,Now',
+    ]);
+
+    // Calculate fee server-side based on option - don't trust client
+    $deliveryFees = [
+        'Pick Up' => 0.00,
+        '15 - 20 Minutes' => 3.00,
+        'Now' => 5.00,
+    ];
+
+    $deliveryFee = $deliveryFees[$validated['delivery_option']];
+    Session::put('shipping_fee', $deliveryFee);
+}
+```
+
+__Payment Method Validation (CheckoutController::processPayment)__
+Implemented Security Controls:
+
+- Payment Method: Required, string, must be one of: "cash", "credit_card", "bank_transfer", "other"
+- Server-Side Total Recalculation: All monetary values recalculated server-side
+- Cart Item Validation:
+   - Validates item structure (price, quantity, name fields exist)
+   - Validates positive prices and quantities
+   - Enforces maximum quantity of 100 per item
+   - Validates reasonable total (between 0 and 10,000)
+
+Code Snippet:
+
+```
+public function processPayment(Request $request)
+{
+    // Validate payment method only - don't accept amounts from client
+    $validated = $request->validate([
+        'payment_method' => 'required|string|in:cash,credit_card,bank_transfer,other',
+    ]);
+
+    // Recalculate everything server-side
+    $deliveryFees = [
+        'Pick Up' => 0.00,
+        '15 - 20 Minutes' => 3.00,
+        'Now' => 5.00,
+    ];
+
+    $deliveryOption = Session::get('delivery_option');
+    
+    if (!array_key_exists($deliveryOption, $deliveryFees)) {
+        Log::error('Invalid delivery option in payment', [
+            'user' => $user->matric_no,
+            'option' => $deliveryOption
+        ]);
+        return redirect()->route('checkout.delivery')->with('error', 'Invalid delivery option.');
+    }
+
+    $shippingFee = $deliveryFees[$deliveryOption];
+    
+    // Recalculate cart totals and validate items
+    $subtotal = 0;
+    foreach ($cart as $item) {
+        // Validate each item structure
+        if (!isset($item['price']) || !isset($item['quantity']) || !isset($item['name'])) {
+            Log::error('Invalid cart item structure', [
+                'user' => $user->matric_no,
+                'item' => $item
+            ]);
+            return redirect()->route('cart.show')->with('error', 'Invalid cart data.');
+        }
+        
+        // Validate positive numbers
+        if ($item['price'] <= 0 || $item['quantity'] < 1) {
+            Log::error('Invalid cart item values', [
+                'user' => $user->matric_no,
+                'item' => $item
+            ]);
+            return redirect()->route('cart.show')->with('error', 'Invalid item prices or quantities.');
+        }
+
+        // Validate reasonable quantity
+        if ($item['quantity'] > 100) {
+            Log::warning('Excessive quantity in cart', [
+                'user' => $user->matric_no,
+                'item' => $item
+            ]);
+            return redirect()->route('cart.show')->with('error', 'Quantity per item cannot exceed 100.');
+        }
+        
+        $subtotal += $item['price'] * $item['quantity'];
+    }
+
+    // Calculate tax and total
+    $salesTax = round($subtotal * 0.065, 2);
+    $orderTotal = round($subtotal + $salesTax + $shippingFee, 2);
+
+    // Validate amounts are reasonable
+    if ($orderTotal <= 0 || $orderTotal > 10000) {
+        Log::error('Suspicious order total', [
+            'user' => $user->matric_no,
+            'total' => $orderTotal
+        ]);
+        return redirect()->route('cart.show')->with('error', 'Order total is invalid.');
+    }
+
+    // Create order with validated, server-calculated values
+    Order::create([
+        'student_id' => $user->matric_no,
+        'total_amount' => $orderTotal, // Server-calculated
+        'payment_method' => $validated['payment_method'],
+        'shipping_fee' => $shippingFee, // Server-calculated
+        'sales_tax' => $salesTax, // Server-calculated
+        // ... other fields
+    ]);
+}
+```
+
+__5. Mahallah Selection Validation__
+
+The mahallah (cafeteria) selection endpoint accepts user input that determines which menu to display and must be validated to prevent path traversal and injection attacks.
+5.1 Mahallah Name Whitelist Validation
+
+Implemented Security Controls:
+
+- Whitelist Validation: Only accepts predefined mahallah names
+- Case-Insensitive Matching: Converts to lowercase before validation
+- 404 Response: Returns 404 for invalid mahallah names instead of exposing error details
+
+Code Snippets:
+```
+public function show(Request $request, $mahallah)
+{
+    // Whitelist validation
+    $allowed = ['siddiq', 'aminah', 'ruqayyah', 'halimah', 'hafsa', 'bilal'];
+
+    if (!in_array(strtolower($mahallah), $allowed)) {
+        abort(404);
+    }
+    
+    // Safe to use after validation
+    return view('student.food', [
+        'mahallah' => ucfirst($mahallah),
+        'logo' => strtolower($mahallah) . '.png',
+    ]);
+}
+```
+
+__Search Parameter Validation__
+
+Implemented Security Controls:
+
+- Nullable: Search is optional
+- String Type: Must be string
+- Maximum Length: 50 characters to prevent DoS
+- Alpha-Dash: Only allows letters, numbers, dashes, and underscores
+- XSS Prevention: Uses strip_tags() to remove any HTML/script tags
+
+```
+// Add validation
+$validated = $request->validate([
+    'search' => 'nullable|string|max:50|alpha_dash',
 ]);
+
+$search = $validated['search'] ?? null;
+
+if ($search) {
+    // Sanitize for XSS prevention
+    $search = strip_tags($search);
+
+    $menus = collect($menus)->filter(function ($item) use ($search) {
+        return str_contains(strtolower($item['category']), strtolower($search));
+    })->values()->all();
+}
+```
+
+__6. Order Tracking Validation__
+
+The order tracking endpoint accepts order IDs that must be validated to prevent unauthorized access and type juggling attacks.
+
+Implemented Security Controls:
+
+- Type Casting: Converts ID to integer to prevent type juggling
+- Positive Number Validation: Ensures ID is greater than 0
+- 404 Response: Returns 404 for invalid IDs
+
+Code Snippet:
+
+```
+   public function track($id)
+{
+    // Add type cast and validate
+    $id = (int) $id;
+
+    if ($id <= 0) {
+        abort(404);
+    }
+
+    $order = Order::with(['orderItems', 'shipping'])->findOrFail($id);
+    
+    return view('orders.track', compact('order'));
+}
+```
+__Similarly for Receipt Viewing (CheckoutController::receipt)__
+
+```
+public function receipt($orderId)
+{
+    // Type cast and validate ID
+    $orderId = (int) $orderId;
+
+    if ($orderId <= 0) {
+        abort(404);
+    }
+
+    $order = Order::with('orderItems', 'shipping')->findOrFail($orderId);
+    
+    return view('checkout.receipt', compact('order'));
+}
 ```
 
 

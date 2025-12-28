@@ -467,9 +467,212 @@ $schedule->command('session:gc')->daily();
 
 ## Support and Questions
 
+---
+
+## IV. XSS AND CSRF PREVENTION ENHANCEMENTS
+
+### 1. Content Security Policy (CSP) Implementation
+
+**Implementation Method**: Custom middleware adding CSP headers to all HTTP responses
+
+**Files Created**:
+- [app/Http/Middleware/ContentSecurityPolicy.php](app/Http/Middleware/ContentSecurityPolicy.php)
+
+**Files Modified**:
+- [bootstrap/app.php](bootstrap/app.php#L14-L19) - Middleware registration
+
+**Security Headers Implemented**:
+- **Content-Security-Policy**: Restricts resource loading to prevent XSS
+  - `default-src 'self'`
+  - `script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.bunny.net`
+  - `style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.bunny.net`
+  - `img-src 'self' data: https:`
+  - `font-src 'self' https://fonts.bunny.net`
+  - `connect-src 'self'`
+  - `frame-ancestors 'none'`
+  - `base-uri 'self'`
+  - `form-action 'self'`
+
+**Additional Security Headers**:
+- **X-Content-Type-Options: nosniff** - Prevents MIME type sniffing
+- **X-Frame-Options: DENY** - Prevents clickjacking
+- **X-XSS-Protection: 1; mode=block** - Enables XSS filtering in browsers
+- **Referrer-Policy: strict-origin-when-cross-origin** - Controls referrer information
+
+**Best Practice Reference**: OWASP Content Security Policy Cheat Sheet
+
+**How It Works**:
+```php
+public function handle(Request $request, Closure $next)
+{
+    $response = $next($request);
+    
+    $csp = "default-src 'self'; ...";
+    $response->headers->set('Content-Security-Policy', $csp);
+    // ... other headers
+    
+    return $response;
+}
+```
+
+**Security Benefits**:
+- ✅ **Prevents XSS attacks** by restricting script execution
+- ✅ **Blocks inline scripts** unless explicitly allowed
+- ✅ **Prevents clickjacking** with frame-ancestors
+- ✅ **Mitigates MIME confusion attacks**
+- ✅ **Enhances referrer privacy**
+
+---
+
+### 2. Input Validation Against HTML Injection
+
+**Implementation Method**: Enhanced validation rules with regex patterns to reject HTML tags
+
+**Files Modified**:
+- [app/Http/Controllers/Auth/StudentAuthController.php](app/Http/Controllers/Auth/StudentAuthController.php#L20-L21) - Name field validation
+- [app/Http/Controllers/CheckoutController.php](app/Http/Controllers/CheckoutController.php#L47-L51) - Shipping form validation
+
+**Validation Rules Added**:
+- **Name fields**: `regex:/^[^<>]*$/` - Rejects any input containing < or >
+- **Phone fields**: `regex:/^[^<>]*$/` - Prevents HTML in phone numbers
+- **Address fields**: `regex:/^[^<>]*$/` - Blocks HTML in addresses
+
+**Example Validation**:
+```php
+'name' => 'required|string|max:255|regex:/^[^<>]*$/',
+'phone' => 'required|string|max:20|regex:/^[^<>]*$/',
+'address' => 'required|string|max:500|regex:/^[^<>]*$/',
+```
+
+**Best Practice Reference**: OWASP Input Validation Cheat Sheet
+
+**Security Benefits**:
+- ✅ **Prevents stored XSS** in user profiles and orders
+- ✅ **Blocks HTML injection** in form submissions
+- ✅ **Complements CSP** with server-side validation
+- ✅ **Maintains data integrity**
+
+---
+
+### 3. CSRF Token Verification
+
+**Implementation Method**: Laravel's built-in CSRF protection with @csrf directive
+
+**Files Verified**: All Blade templates with forms include @csrf
+
+**Verified Forms**:
+- [resources/views/auth/login.blade.php](resources/views/auth/login.blade.php#L23)
+- [resources/views/auth/register_student.blade.php](resources/views/auth/register_student.blade.php#L24)
+- [resources/views/auth/forgot-password.blade.php](resources/views/auth/forgot-password.blade.php#L19)
+- [resources/views/checkout/form.blade.php](resources/views/checkout/form.blade.php#L18)
+- [resources/views/checkout/delivery.blade.php](resources/views/checkout/delivery.blade.php#L478)
+- [resources/views/navigation-menu.blade.php](resources/views/navigation-menu.blade.php#L114)
+
+**CSRF Protection Features**:
+- **Automatic token generation** for each session
+- **Token validation** on POST/PUT/PATCH/DELETE requests
+- **Token regeneration** on login/logout
+- **Meta tag inclusion** for AJAX requests
+
+**Best Practice Reference**: OWASP CSRF Prevention Cheat Sheet
+
+**Security Benefits**:
+- ✅ **Prevents CSRF attacks** on state-changing operations
+- ✅ **Automatic protection** for all web routes
+- ✅ **AJAX compatibility** via meta tag
+- ✅ **Session-based tokens** for uniqueness
+
+---
+
+## Testing XSS and CSRF Protections
+
+### Manual Testing Checklist
+
+#### 1. CSP Header Testing
+- [ ] Check browser DevTools Network tab for CSP headers on all pages
+- [ ] Verify `Content-Security-Policy` header is present
+- [ ] Confirm additional security headers (X-Frame-Options, etc.)
+- [ ] Test that inline scripts are blocked (should show CSP violation in console)
+
+#### 2. Input Validation Testing
+- [ ] Try submitting forms with HTML tags in name/phone/address fields
+- [ ] Verify validation errors are shown for inputs like `<script>alert(1)</script>`
+- [ ] Confirm clean inputs still work normally
+
+#### 3. CSRF Protection Testing
+- [ ] Verify all forms include hidden `_token` fields
+- [ ] Check that POST requests without tokens are rejected (419 error)
+- [ ] Confirm token regeneration on login/logout
+
+### Automated Testing
+
+Add to [tests/Feature/SecurityTest.php](tests/Feature/SecurityTest.php):
+
+```php
+public function test_csp_headers_present()
+{
+    $response = $this->get('/');
+    
+    $response->assertHeader('Content-Security-Policy')
+             ->assertHeader('X-Frame-Options', 'DENY')
+             ->assertHeader('X-XSS-Protection', '1; mode=block');
+}
+
+public function test_html_injection_blocked()
+{
+    $response = $this->post('/register', [
+        'name' => '<script>alert("xss")</script>',
+        'email' => 'test@example.com',
+        'password' => 'Password123!',
+        'password_confirmation' => 'Password123!',
+    ]);
+    
+    $response->assertSessionHasErrors('name');
+}
+```
+
+---
+
+## Production Deployment for XSS/CSRF
+
+Before deploying to production:
+
+1. **Review CSP policy**:
+   - Adjust script/style sources for production CDNs
+   - Consider 'strict-dynamic' for nonce-based CSP
+   - Test all pages for CSP violations
+
+2. **Enable HTTPS**:
+   - Required for secure cookie transmission
+   - Consider adding `Strict-Transport-Security` header
+
+3. **Monitor CSP violations**:
+   - Set up reporting endpoint for CSP violations
+   - Regularly review violation reports
+
+4. **Input validation**:
+   - Test all user input fields
+   - Consider using HTML sanitization libraries for rich text
+
+---
+
+## Security Standards Compliance
+
+These enhancements align with:
+
+- **OWASP Top 10 2021**
+  - A03:2021 - Injection
+  - A05:2021 - Security Misconfiguration
+
+- **CWE (Common Weakness Enumeration)**
+  - CWE-79: Cross-site Scripting
+  - CWE-352: Cross-Site Request Forgery
+
+---
+
 For questions about these security enhancements:
 1. Review the implementation files listed in each section
 2. Check Laravel documentation for Fortify and authentication
 3. Refer to OWASP guidelines for security best practices
 
-**Last Updated**: December 26, 2025
+**Last Updated**: December 29, 2025

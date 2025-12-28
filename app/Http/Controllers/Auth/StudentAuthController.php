@@ -21,7 +21,7 @@ class StudentAuthController extends Controller
     {
         $request->validate([
             'matric_no' => 'required|integer|unique:students,matric_no',
-            'name' => 'required|string',
+            'name' => 'required|string|max:255|regex:/^[^<>]*$/',
             'email' => 'required|email|unique:students,email',
             'password' => [
                 'required',

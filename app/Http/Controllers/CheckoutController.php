@@ -46,12 +46,12 @@ class CheckoutController extends Controller
 
         //add cart quantity limits
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:255|regex:/^[^<>]*$/',
             //add phone regex validation
-            'phone' => 'required|string|max:20',
+            'phone' => 'required|string|max:20|regex:/^[^<>]*$/',
                     
             //add address max length validation
-            'address' => 'required|string|max:500',
+            'address' => 'required|string|max:500|regex:/^[^<>]*$/',
             'cart.*.quantity' => 'required|integer|min:1|max:100',
         ]);
 

@@ -386,9 +386,15 @@
                         <input type="text" id="name" name="name" required>
                     </div>
 
+                    @error('phone')
+                        <div class="alert alert-danger">{{ $message }}</div>
+                    @enderror
+
                     <div class="col-lg-12">
                         <label for="phone">Phone Number <span>*</span></label>
-                        <input type="text" id="phone" name="phone" required>
+                        <small class="form-text text-muted"> 
+                             <br> Please enter your phone number in Malaysian phone format (e.g., 012-3456789 or +6012-3456789) </small>
+                        <input type="text" class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" value="{{ old('phone') }}" placeholder="e.g., 012-3456789 or +6012-3456789">
                     </div>
 
                     <div class="col-lg-12">

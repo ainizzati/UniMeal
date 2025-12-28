@@ -387,9 +387,29 @@
                         <input type="text" id="name" name="name" required>
                     </div>
 
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['phone'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <div class="alert alert-danger"><?php echo e($message); ?></div>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+
                     <div class="col-lg-12">
                         <label for="phone">Phone Number <span>*</span></label>
-                        <input type="text" id="phone" name="phone" required>
+                        <small class="form-text text-muted"> 
+                             <br> Please enter your phone number in Malaysian phone format (e.g., 012-3456789 or +6012-3456789) </small>
+                        <input type="text" class="form-control <?php $__errorArgs = ['phone'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" id="phone" name="phone" value="<?php echo e(old('phone')); ?>" placeholder="e.g., 012-3456789 or +6012-3456789">
                     </div>
 
                     <div class="col-lg-12">
@@ -432,4 +452,4 @@
 </script>
 </body>
 </html>
-<?php /**PATH C:\Users\Syazira Naim\UniMeal\resources\views/checkout/index.blade.php ENDPATH**/ ?>
+<?php /**PATH C:\xampp\htdocs\UniMeal\resources\views/checkout/index.blade.php ENDPATH**/ ?>

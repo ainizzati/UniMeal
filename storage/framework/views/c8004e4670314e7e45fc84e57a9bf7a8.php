@@ -651,4 +651,4 @@
 
 </body>
 </html>
-<?php /**PATH C:\Users\Syazira Naim\UniMeal\resources\views/checkout/delivery.blade.php ENDPATH**/ ?>
+<?php /**PATH C:\xampp\htdocs\UniMeal\resources\views/checkout/delivery.blade.php ENDPATH**/ ?>

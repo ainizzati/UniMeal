@@ -51,6 +51,9 @@ The UniMeal web application aims to deliver an efficient, user-friendly, and cen
   
 ## Web Application Security Enhancements
 ## i. Input Validation
+
+
+
 ## ii. Authentication
 __1. Stronger Password Policies__
 

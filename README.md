@@ -51,18 +51,17 @@ The UniMeal web application aims to deliver an efficient, user-friendly, and cen
 ## Web Application Security Enhancements
 __i. Input Validation__
 __ii. Authentication__
-
-1. Stronger Password Policies
+### 1. Stronger Password Policies
 Student registration (/register/student) and authentication (/login) endpoints were identified as critical entry points where weak credentials could expose the system to brute force and credential stuffing attacks.
 
 Implemented Security Controls:
--Minimum password length increased to 10 characters
--Enforced uppercase and lowercase letters
--Required numeric characters
--Required special symbols
--Enabled compromised password checks using the Have I Been Pwned database
--Uses k-anonymity (only partial hash shared)
--Prevents reuse of known breached passwords
+- Minimum password length increased to 10 characters
+- Enforced uppercase and lowercase letters
+- Required numeric characters
+- Required special symbols
+- Enabled compromised password checks using the Have I Been Pwned database
+- Uses k-anonymity (only partial hash shared)
+- Prevents reuse of known breached passwords
 <img width="1919" height="1077" alt="Screenshot 2025-12-28 222457" src="https://github.com/user-attachments/assets/b7301975-52e3-4f7a-b6ad-7626640072f0" />
 
 Code Snippet:
@@ -75,24 +74,24 @@ Password::defaults(function () {
         ->uncompromised();
 });
 
-2. Login Attempt Monitoring
+### 2. Login Attempt Monitoring
 Although SQL injection attempts on the login form were unsuccessful due to input validation and prepared statements, repeated authentication attempts could still indicate brute force or automated attacks.
 
 Implemented Security Controls:
--Logs akk login attempts (successful and failed)
--Automatically removes failed attempts after a successful login
+- Logs akk login attempts (successful and failed)
+- Automatically removes failed attempts after a successful login
 <img width="1919" height="847" alt="Screenshot 2025-12-28 223145" src="https://github.com/user-attachments/assets/eb62d985-3a54-401a-ba09-d714564f8faf" />
 
-3. Account Lockout Mechanism
+### 3. Account Lockout Mechanism
 Repeated failed authentication attempts can lead to password guessing attacks even when SQL injection is mitigated.
 
 Lockout Policy
--Maximum 5 failed login attempts
--Lockout duration: 15 minutes
--Reset after successful login or timeout expiry
+- Maximum 5 failed login attempts
+- Lockout duration: 15 minutes
+- Reset after successful login or timeout expiry
 <img width="1919" height="1020" alt="Screenshot 2025-12-28 223029" src="https://github.com/user-attachments/assets/8562f989-7008-4f09-89ea-015cfae3c04a" />
 
-4. Session Security Hardening
+### 4. Session Security Hardening
 Production testing highlighted the need to prevent session fixation, hijacking, and CSRF attacks after successful authentication.
 
 Environment Configuration
@@ -105,6 +104,34 @@ SESSION_SAME_SITE=strict
 
 
 __iii. Authorization__
+### 1. Order Authorization Policy
+During authorization testing, an attempt was made for Student B to access Student A’s order by directly modifying the URL (/orders/track/{id}).
+Without proper authorization checks, this would constitute an IDOR vulnerability.
+
+Authorization Controls Implemented
+- Students can only view orders that belong to them
+- Order receipts are protected using the same ownership rule
+
+Security Impact
+- Prevents unauthorized order access via URL manipulation
+- Mitigates IDOR attacks
+- Ensures consistent authroization across controllers
+- Replaces manual authorization checks with centralized policy enforcement
+<img width="1918" height="1078" alt="Screenshot 2025-12-28 231013" src="https://github.com/user-attachments/assets/d020089c-4e3e-4da1-a3b6-836d0a9496c0" />
+
+
+### 2. Time-Based Order Restrictions (Attribute-Based Authorization)
+Business logic testing identified that orders could be placed at any time, including periods when cafeteria operations should be closed.
+This presents a business logic abuse risk, not a technical exploit.
+
+Authorization Controls Implemented
+- Orders are only allowed during defined operating hours
+
+Security Impact
+- Prevents unauthroized order placement outside business rules
+- Mitigates abuse of checkout logic
+<img width="1919" height="1079" alt="Screenshot 2025-12-29 051520" src="https://github.com/user-attachments/assets/1187d7af-2b33-4105-bfb9-831faa10dd58" />
+
 __iv. XSS and CSRF Prevention__
 __v. Database Security Principles__
 Initial Security Audit and Vulnerability Identification

@@ -81,3 +81,25 @@
     </div>
 </body>
 </html>
+
+<script>
+document.querySelector('form').addEventListener('submit', function(e) {
+    const password = document.querySelector('input[name="password"]').value;
+    const confirm = document.querySelector('input[name="password_confirmation"]').value;
+
+    // Check password strength
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{10,}$/;
+
+    if (!regex.test(password)) {
+        e.preventDefault();
+        alert('Password must be at least 10 characters with uppercase, lowercase, number, and special character.');
+        return false;
+    }
+
+    if (password !== confirm) {
+        e.preventDefault();
+        alert('Passwords do not match!');
+        return false;
+    }
+});
+</script>

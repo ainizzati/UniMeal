@@ -10,7 +10,7 @@ class MahallahController extends Controller
     {
         //after(whitelist validation)
         $allowed = ['siddiq', 'aminah', 'ruqayyah', 'halimah', 'hafsa', 'bilal'];
-        
+
         if (!in_array(strtolower($mahallah), $allowed)) {
             abort(404);
         }
@@ -46,8 +46,17 @@ class MahallahController extends Controller
         ];
 
         // Handle category search
-        $search = $request->query('search');
+        // Add validation
+        $validated = $request->validate([
+            'search' => 'nullable|string|max:50|alpha_dash',
+        ]);
+
+        $search = $validated['search'] ?? null;
+
         if ($search) {
+            // Sanitize for XSS prevention
+            $search = strip_tags($search);
+
             $menus = collect($menus)->filter(function ($item) use ($search) {
                 return str_contains(strtolower($item['category']), strtolower($search));
             })->values()->all();

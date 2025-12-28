@@ -23,7 +23,13 @@ class StudentAuthController extends Controller
             'matric_no' => 'required|integer|unique:students,matric_no',
             'name' => 'required|string',
             'email' => 'required|email|unique:students,email',
-            'password' => 'required|string|confirmed',
+            'password' => [
+                'required',
+                'string',
+                'min:10',
+                'confirmed',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$/'
+            ],
         ]);
 
         $student = Student::create([

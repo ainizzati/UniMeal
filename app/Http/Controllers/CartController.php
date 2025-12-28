@@ -67,24 +67,20 @@ class CartController extends Controller
     // Remove item from cart
     public function remove($index)
     {
-         // after --> Validate index
         $index = (int) $index;
+        $cart = Session::get('cart', []);
         
-        if ($index < 0) {
-            abort(400);
+        // ✅ Add this check
+        if ($index < 0 || $index >= count($cart)) {
+            abort(404, 'Invalid cart item');
         }
 
-        $cart = Session::get('cart', []);
-
         if (!isset($cart[$index])) {
-        abort(404);
+            abort(404, 'Cart item not found');
         }
         
         unset($cart[$index]);
-
-        // unset($cart[$index]); --> only this line, no validation on $index
-
-        Session::put('cart', array_values($cart)); // Reindex array
+        Session::put('cart', array_values($cart));
         return redirect()->route('cart.show')->with('success', 'Item removed from cart.');
     }
 

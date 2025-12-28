@@ -46,11 +46,25 @@ class CheckoutController extends Controller
         //add cart quantity limits
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
-            'address' => 'required|string|max:500',
+            //add phone regex validation
+            'phone' => [
+                        'required',
+                        'string',
+                        'regex:/^(\+?6?01)[0-46-9]-*[0-9]{7,8}$/', // Malaysian format
+                        'min:10',
+                        'max:15'
+                    ],
+                    
+            //add address max length validation
+            'address' => [
+                        'required',
+                        'string',
+                        'min:10',
+                        'max:500',
+                        'regex:/^[a-zA-Z0-9\s,.\-\/()]+$/' // Allows letters, numbers, common punctuation
+                    ],
             'cart.*.quantity' => 'required|integer|min:1|max:100',
         ]);
-
 
         Session::put('shipping', $validated);
         return redirect()->route('checkout.delivery');

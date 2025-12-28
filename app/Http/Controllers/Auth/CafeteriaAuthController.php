@@ -29,7 +29,13 @@ class CafeteriaAuthController extends Controller
             'cafeteria_id' => 'required|integer|unique:cafeterias,cafeteria_id',
             'name' => 'required|string',
             'email' => 'required|email|unique:cafeterias,email',
-            'password' => 'required|string|confirmed',
+            'password' => [
+                'required',
+                'string',
+                'min:10',
+                'confirmed',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$/'
+            ],
         ]);
 
         $cafeteria = Cafeteria::create([

@@ -16,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'prevent.back' => \App\Http\Middleware\PreventBackHistory::class,
         ]);
+
+        // Add Content Security Policy middleware to web routes
+        $middleware->web(\App\Http\Middleware\ContentSecurityPolicy::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

@@ -104,22 +104,21 @@ class CheckoutController extends Controller
         // ]);
 
         $validated = $request->validate([
-        'delivery_option' => 'required|string|in:standard,express,pickup',
+            'delivery_option' => 'required|string|in:Pick Up,15 - 20 Minutes,Now',
         ]);
 
         // Calculate fee server-side based on option
         $deliveryFees = [
-            'standard' => 5.00,
-            'express' => 10.00,
-            'pickup' => 0.00,
+            'Pick Up' => 0.00,
+            '15 - 20 Minutes' => 3.00,
+            'Now' => 5.00,
         ];
 
         $deliveryFee = $deliveryFees[$validated['delivery_option']];
         Session::put('shipping_fee', $deliveryFee);
+        Session::put('delivery_option', $validated['delivery_option']);
 
         $cart = Session::get('cart', []);
-        // Session::put('delivery_option', $validated['delivery_option']);
-        // Session::put('shipping_fee', $validated['delivery_fee']);
 
         $summary = $this->calculateCartSummary($cart, $deliveryFee);
         Session::put('subtotal', $summary['subtotal']);
@@ -131,28 +130,16 @@ class CheckoutController extends Controller
 
     public function payment()
     {
-        // Get cart from session
-        $cart = session('cart', []);
+        // Get values from session (already calculated in processDelivery)
+        $cart = Session::get('cart', []);
+        $deliveryOption = Session::get('delivery_option');
+        $shippingFee = Session::get('shipping_fee', 0.00);
+        $subtotal = Session::get('subtotal', 0.00);
+        $salesTax = Session::get('sales_tax', 0.00);
+        $orderTotal = Session::get('order_total', 0.00);
 
-        // Calculate totals
-        $subtotal = 0;
-        foreach ($cart as $item) {
-            $subtotal += $item['price'] * $item['quantity'];
-        }
-
-        $salesTax = $subtotal * 0.065; // 6.5% sales tax
-        $shippingFee = $subtotal > 50 ? 0 : 5; // Free shipping over RM50
-        $orderTotal = $subtotal + $salesTax + $shippingFee;
-
-        // Store in session for later use
-        session([
-            'subtotal' => $subtotal,
-            'sales_tax' => $salesTax,
-            'shipping_fee' => $shippingFee,
-            'order_total' => $orderTotal
-        ]);
-
-        return view('checkout.payment', compact('cart', 'subtotal', 'salesTax', 'shippingFee', 'orderTotal'));
+        // Use values already stored in session, don't recalculate
+        return view('checkout.payment', compact('cart', 'subtotal', 'salesTax', 'shippingFee', 'orderTotal', 'deliveryOption'));
     }
 
     public function processPayment(Request $request)
@@ -192,8 +179,17 @@ class CheckoutController extends Controller
         $salesTax = Session::get('sales_tax', 0.00);
         $orderTotal = Session::get('order_total', 0.00);
 
+        // Debug: Log delivery option
+        Log::info('Delivery Option from session:', ['delivery_option' => $deliveryOption]);
+
         if (empty($cart) || empty($shipping)) {
             return redirect()->route('checkout.form')->with('error', 'Missing order information.');
+        }
+
+        // Validate delivery option exists
+        if (empty($deliveryOption)) {
+            Log::error('Delivery option is missing from session');
+            return redirect()->route('checkout.delivery')->with('error', 'Please select a delivery option.');
         }
 
 

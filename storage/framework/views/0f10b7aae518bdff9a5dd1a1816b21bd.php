@@ -542,12 +542,11 @@
                     </div>
                 </div>
 
-                <form action="<?php echo e(route('checkout.delivery.process')); ?>" method="POST">
-                    <?php echo csrf_field(); ?>
-                    <div class="col-lg-6">
-                        <h4>Delivery Options</h4>
-                        <!-- Delivery Options -->
-                        <div class="delivery-section">
+                <!-- Right: Delivery Options -->
+                <div class="col-lg-6">
+                    <h4>Delivery Options</h4>
+                    <!-- Delivery Options -->
+                    <div class="delivery-section">
                             <div class="row">
                                 <div class="delivery-option selected" onclick="selectDeliveryOption(this, 'Pick Up', 0)">
                                     <input type="radio" name="delivery_option" value="Pick Up" data-fee="0" checked style="display: none;">
@@ -588,13 +587,12 @@
                         <input type="hidden" name="delivery_fee" id="delivery_fee" value="0">
                         <input type="hidden" name="final_total" id="final_total" value="<?php echo e($subtotal + $salesTax); ?>">
 
-                        <div class="col-lg-12">
-                            <div class="order-btn">
-                                <button type="submit" class="site-btn place-btn" style="float: right;">Continue</button>
-                            </div>
+                    <div class="col-lg-12">
+                        <div class="order-btn">
+                            <button type="submit" class="site-btn place-btn" style="float: right;">Continue</button>
                         </div>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
     </form>

@@ -10,6 +10,13 @@ class CartController extends Controller
     // Add item to cart
     public function add(Request $request)
     {
+        // after --> Add validation
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0|max:9999.99',
+            'image' => 'required|string|max:500',
+        ]);
+
         $cart = Session::get('cart', []);
 
         // Convert price to float safely
@@ -29,10 +36,19 @@ class CartController extends Controller
             $cart[$existingIndex]['quantity'] += 1;
         } else {
             // Otherwise, add new item
+            //before
+            // $cart[] = [
+            //     'name' => $request->name, //no validation
+            //     'price' => $price,
+            //     'image' => $request->image, //no validation
+            //     'quantity' => 1,
+            // ];
+
+            //after
             $cart[] = [
-                'name' => $request->name,
-                'price' => $price,
-                'image' => $request->image,
+                'name' => $validated['name'],
+                'price' => $validated['price'],
+                'image' => $validated['image'],
                 'quantity' => 1,
             ];
         }
@@ -51,8 +67,23 @@ class CartController extends Controller
     // Remove item from cart
     public function remove($index)
     {
+         // after --> Validate index
+        $index = (int) $index;
+        
+        if ($index < 0) {
+            abort(400);
+        }
+
         $cart = Session::get('cart', []);
+
+        if (!isset($cart[$index])) {
+        abort(404);
+        }
+        
         unset($cart[$index]);
+
+        // unset($cart[$index]); --> only this line, no validation on $index
+
         Session::put('cart', array_values($cart)); // Reindex array
         return redirect()->route('cart.show')->with('success', 'Item removed from cart.');
     }
@@ -60,16 +91,32 @@ class CartController extends Controller
     // ✅ Update item quantity
     public function update(Request $request, $index)
     {
+        // Validate action parameter
+        $validated = $request->validate([
+            'action' => 'required|string|in:increase,decrease',
+        ]);
+
+        // Validate and type-cast index
+        $index = (int) $index;
+
+        if ($index < 0) {
+            abort(400);
+        }
+
         $cart = Session::get('cart', []);
 
-        if (isset($cart[$index])) {
-            if ($request->input('action') === 'increase') {
-                $cart[$index]['quantity'] += 1;
-            } elseif ($request->input('action') === 'decrease' && $cart[$index]['quantity'] > 1) {
-                $cart[$index]['quantity'] -= 1;
-            }
-            Session::put('cart', $cart);
+        if (!isset($cart[$index])) {
+            abort(404);
         }
+
+        // Use validated action
+        if ($validated['action'] === 'increase') {
+            $cart[$index]['quantity'] += 1;
+        } elseif ($validated['action'] === 'decrease' && $cart[$index]['quantity'] > 1) {
+            $cart[$index]['quantity'] -= 1;
+        }
+
+        Session::put('cart', $cart);
 
         return redirect()->route('cart.show');
     }

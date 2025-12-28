@@ -8,6 +8,12 @@ class MahallahController extends Controller
 {
     public function show(Request $request, $mahallah)
     {
+        //after(whitelist validation)
+        $allowed = ['siddiq', 'aminah', 'ruqayyah', 'halimah', 'hafsa', 'bilal'];
+        
+        if (!in_array(strtolower($mahallah), $allowed)) {
+            abort(404);
+        }
         // Store selected mahallah in session
         session(['selected_mahallah' => $mahallah]);
 
@@ -49,7 +55,7 @@ class MahallahController extends Controller
 
         return view('student.food', [
             'mahallah' => ucfirst($mahallah),
-            'logo' => strtolower($mahallah) . '.png',
+            'logo' => strtolower($mahallah) . '.png', //before (path injection risk)
             'menus' => $menus,
             'otherMahallahs' => array_diff(
                 ['Siddiq', 'Aminah', 'Ruqayyah', 'Halimah', 'Hafsa', 'Bilal'],

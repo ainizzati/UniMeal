@@ -26,6 +26,14 @@ class OrderController extends Controller
      */
     public function track($id)
     {
+        //before (missing type validation)
+         //after --> add type cast and validate
+        $id = (int) $id;
+        
+        if ($id <= 0) {
+            abort(404);
+        }
+        
         $order = Order::with(['orderItems', 'shipping'])->findOrFail($id);
 
         if ($order->student_id !== Auth::guard('student')->id()) {

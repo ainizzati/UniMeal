@@ -36,11 +36,21 @@ class CheckoutController extends Controller
 
     public function process(Request $request)
     {
+        //no cart quantity limits
+        // $validated = $request->validate([
+        //     'name' => 'required',
+        //     'phone' => 'required',
+        //     'address' => 'required',
+        // ]);
+
+        //add cart quantity limits
         $validated = $request->validate([
-            'name' => 'required',
-            'phone' => 'required',
-            'address' => 'required',
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+            'address' => 'required|string|max:500',
+            'cart.*.quantity' => 'required|integer|min:1|max:100',
         ]);
+
 
         Session::put('shipping', $validated);
         return redirect()->route('checkout.delivery');
@@ -74,16 +84,30 @@ class CheckoutController extends Controller
 
     public function processDelivery(Request $request)
     {
+        // $validated = $request->validate([
+        //     'delivery_option' => 'required|string',
+        //     'delivery_fee' => 'required|numeric', //user can manipulate this
+        // ]);
+
         $validated = $request->validate([
-            'delivery_option' => 'required|string',
-            'delivery_fee' => 'required|numeric',
+        'delivery_option' => 'required|string|in:standard,express,pickup',
         ]);
 
-        $cart = Session::get('cart', []);
-        Session::put('delivery_option', $validated['delivery_option']);
-        Session::put('shipping_fee', $validated['delivery_fee']);
+        // Calculate fee server-side based on option
+        $deliveryFees = [
+            'standard' => 5.00,
+            'express' => 10.00,
+            'pickup' => 0.00,
+        ];
 
-        $summary = $this->calculateCartSummary($cart, $validated['delivery_fee']);
+        $deliveryFee = $deliveryFees[$validated['delivery_option']];
+        Session::put('shipping_fee', $deliveryFee);
+
+        $cart = Session::get('cart', []);
+        // Session::put('delivery_option', $validated['delivery_option']);
+        // Session::put('shipping_fee', $validated['delivery_fee']);
+
+        $summary = $this->calculateCartSummary($cart, $deliveryFee);
         Session::put('subtotal', $summary['subtotal']);
         Session::put('sales_tax', $summary['salesTax']);
         Session::put('order_total', $summary['total']);
@@ -128,9 +152,16 @@ class CheckoutController extends Controller
         Log::info('Session:', Session::all());
 
 
+        //no payment whitelist validation
         $validated = $request->validate([
             'payment_method' => 'required|string',
         ]);
+
+        //add payment whitelist validation
+        $validated = $request->validate([
+            'payment_method' => 'required|string|in:cash,credit_card,bank_transfer,other',
+        ]);
+
 
         $user = Auth::guard('student')->user();
 
@@ -190,10 +221,17 @@ class CheckoutController extends Controller
 
     public function receipt($orderId)
     {
+        // Type cast and validate ID
+        $orderId = (int) $orderId;
+
+        if ($orderId <= 0) {
+            abort(404);
+        }
+
         $user = Auth::guard('student')->user();
         $order = Order::with('orderItems', 'shipping')->findOrFail($orderId);
 
-        if ($user->id !== $order->matric_no) {
+        if ($user->matric_no !== $order->student_id) {
             abort(403); // Prevent others from viewing this receipt
         }
 

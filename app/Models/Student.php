@@ -10,7 +10,18 @@ class Student extends Authenticatable
     public $incrementing = false;
     protected $keyType = 'string';
 
+    //before (missing password protection)
     protected $fillable = ['matric_no', 'name', 'email', 'password'];
+
+    //after (added hides password & auto hashing with Laravel 11)
+    protected $hidden = [
+    'password',
+    'remember_token',
+    ];
+
+    protected $casts = [
+        'password' => 'hashed',
+    ];
 
     public function getAuthPassword()
     {

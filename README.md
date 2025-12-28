@@ -51,7 +51,30 @@ The UniMeal web application aims to deliver an efficient, user-friendly, and cen
   
 ## Web Application Security Enhancements
 ## i. Input Validation
+During the initial security audit, the student registration endpoint /register/student was identified as a critical entry point. Weak password policies and insufficient input validation could expose the system to:
 
+- Brute force attacks using weak passwords
+- Credential stuffing with compromised passwords
+- SQL injection through unsanitized user inputs
+- XSS attacks through malicious name inputs
+
+Implemented Security Controls:
+
+```
+// StudentAuthController::register()
+$request->validate([
+    'matric_no' => 'required|integer|unique:students,matric_no',
+    'name' => 'required|string|max:255|regex:/^[^<>]*$/',
+    'email' => 'required|email|unique:students,email',
+    'password' => [
+        'required',
+        'string',
+        'min:10',                    // Minimum 10 characters
+        'confirmed',                  // Must match confirmation field
+        'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$/'
+    ],
+]);
+```
 
 
 ## ii. Authentication

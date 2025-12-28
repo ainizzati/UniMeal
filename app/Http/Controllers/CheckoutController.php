@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use App\Models\Order;
@@ -24,6 +25,14 @@ class CheckoutController extends Controller
 
     public function form()
     {
+        // Check if ordering is allowed during current time
+        $user = Auth::guard('student')->user();
+
+        if ($user && !Auth::guard('student')->user()->can('can-place-order')) {
+            return redirect()->route('student.home')->with('error',
+                'Sorry, we are currently CLOSED. Orders can only be placed during our operating hours: 8:00 AM - 3:00 AM daily. Please come back during operating hours!');
+        }
+
         $cart = Session::get('cart', []);
         $shipping = Session::get('shipping', []);
         $shippingFee = Session::get('shipping_fee', 0.00);
@@ -133,14 +142,26 @@ class CheckoutController extends Controller
 
     public function processPayment(Request $request)
     {
-        // 1. VALIDATE PAYMENT METHOD ONLY
+        // 1. CHECK TIME-BASED RESTRICTIONS
+        $user = Auth::guard('student')->user();
+
+        if ($user && !$user->can('can-place-order')) {
+            Log::warning('Order placement attempted outside operating hours', [
+                'user' => $user->matric_no,
+                'time' => now()->format('Y-m-d H:i:s')
+            ]);
+
+            return redirect()->route('student.home')->with('error',
+                'Sorry, we are currently CLOSED. Orders can only be placed during our operating hours: 8:00 AM - 3:00 AM daily. Please come back during operating hours!');
+        }
+
+        // 2. VALIDATE PAYMENT METHOD ONLY
         $validated = $request->validate([
             'payment_method' => 'required|string|in:cash,credit_card,bank_transfer,other',
         ]);
 
-        // 2. VALIDATE USER
-        $user = Auth::guard('student')->user();
-        
+        // 3. VALIDATE USER
+
         if (!$user || !$user->matric_no) {
             Log::error('Unauthorized payment attempt', [
                 'ip' => $request->ip(),
@@ -149,12 +170,15 @@ class CheckoutController extends Controller
             return redirect()->route('checkout.form')->with('error', 'You must be logged in.');
         }
 
-        // 3. GET DATA FROM SESSION
+        // 4. AUTHORIZE CART CHECKOUT
+        Gate::forUser($user)->authorize('checkout', \App\Http\Controllers\CartController::class);
+
+        // 5. GET DATA FROM SESSION
         $cart = Session::get('cart', []);
         $shipping = Session::get('shipping', []);
         $deliveryOption = Session::get('delivery_option');
 
-        // 4. VALIDATE REQUIRED DATA
+        // 6. VALIDATE REQUIRED DATA
         if (empty($cart)) {
             Log::warning('Payment attempted with empty cart', ['user' => $user->matric_no]);
             return redirect()->route('cart.show')->with('error', 'Your cart is empty.');
@@ -299,6 +323,9 @@ class CheckoutController extends Controller
 
     public function receipt($orderId)
     {
+        // Get authenticated student
+        $student = Auth::guard('student')->user();
+
         // Type cast and validate ID
         $orderId = (int) $orderId;
 
@@ -306,12 +333,10 @@ class CheckoutController extends Controller
             abort(404);
         }
 
-        $user = Auth::guard('student')->user();
         $order = Order::with('orderItems', 'shipping')->findOrFail($orderId);
 
-        if ($user->matric_no !== $order->student_id) {
-            abort(403); // Prevent others from viewing this receipt
-        }
+        // Authorize viewing receipt (replaces manual check)
+        Gate::forUser($student)->authorize('viewReceipt', $order);
 
         return view('checkout.receipt', compact('order'));
     }

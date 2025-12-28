@@ -12,33 +12,34 @@
 </head>
 <body class="bg-gray-100 min-h-screen">
 
-@if(session('success'))
+<?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(session('success')): ?>
     <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded m-4">
-        {{ session('success') }}
-    </div>
-@endif
+        <?php echo e(session('success')); ?>
 
-@if(session('error'))
+    </div>
+<?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+
+<?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(session('error')): ?>
     <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded m-4 relative" role="alert">
         <strong class="font-bold">⚠️ Cafeteria Closed</strong>
-        <span class="block sm:inline">{{ session('error') }}</span>
+        <span class="block sm:inline"><?php echo e(session('error')); ?></span>
     </div>
     <script>
         // Show popup alert for error messages
-        alert('⚠️ CAFETERIA CLOSED\n\n{{ session('error') }}');
+        alert('⚠️ CAFETERIA CLOSED\n\n<?php echo e(session('error')); ?>');
     </script>
-@endif
+<?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
 <!-- ✅ HEADER -->
 <header class="bg-soft-pink shadow p-4 flex justify-between items-center text-white">
-    <img src="{{ asset('images/unimeal_logo.png') }}" alt="UniMeal Logo" class="h-10">
+    <img src="<?php echo e(asset('images/unimeal_logo.png')); ?>" alt="UniMeal Logo" class="h-10">
     <div class="flex items-center space-x-4">
-        <span>Welcome, {{ Auth::guard('student')->user()->name }}</span>
-        <a href="{{ route('orders.history') }}" class="bg-pink-600 hover:bg-pink-700 text-white font-semibold py-2 px-4 rounded">
+        <span>Welcome, <?php echo e(Auth::guard('student')->user()->name); ?></span>
+        <a href="<?php echo e(route('orders.history')); ?>" class="bg-pink-600 hover:bg-pink-700 text-white font-semibold py-2 px-4 rounded">
             📦 Track My Orders
         </a>
-        <form action="{{ route('logout') }}" method="POST" class="inline">
-            @csrf
+        <form action="<?php echo e(route('logout')); ?>" method="POST" class="inline">
+            <?php echo csrf_field(); ?>
             <button type="submit" class="bg-pink-600 hover:bg-pink-700 text-white font-semibold py-2 px-4 rounded">
                 🚪 Logout
             </button>
@@ -48,7 +49,7 @@
 
 <!-- ✅ Hero Poster Banner -->
 <section class="relative w-full overflow-hidden mt-4">
-    <img id="heroPoster" src="{{ asset('images/poster1.png') }}" alt="UniMeal Banner" class="w-full h-64 sm:h-96 object-cover transition-opacity duration-700 ease-in-out">
+    <img id="heroPoster" src="<?php echo e(asset('images/poster1.png')); ?>" alt="UniMeal Banner" class="w-full h-64 sm:h-96 object-cover transition-opacity duration-700 ease-in-out">
 
     <!-- Arrows -->
     <button onclick="prevSlide()" class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white bg-pink-600 hover:bg-pink-700 p-2 rounded-full shadow z-10">&#10094;</button>
@@ -66,16 +67,16 @@
 <section class="mb-10 mt-6">
     <h2 class="text-2xl font-semibold mb-4 text-center text-pink-700">UniMeal Popular Categories 🤩</h2>
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 px-4">
-        @foreach (['Drinks', 'Pizza', 'Mee', 'Nasi', 'Soup'] as $category)
+        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = ['Drinks', 'Pizza', 'Mee', 'Nasi', 'Soup']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
             <div class="flex flex-col items-center bg-white p-4 rounded shadow border border-gray-200 transform hover:scale-105 hover:bg-pink-100 transition duration-300">
                 <div class="w-20 h-20 mb-2">
-                    <img src="{{ asset('images/categories/' . strtolower($category) . '.jpeg') }}"
-                         alt="{{ $category }}"
+                    <img src="<?php echo e(asset('images/categories/' . strtolower($category) . '.jpeg')); ?>"
+                         alt="<?php echo e($category); ?>"
                          class="w-full h-full object-cover rounded">
                 </div>
-                <span class="text-lg font-bold text-pink-700">{{ $category }}</span>
+                <span class="text-lg font-bold text-pink-700"><?php echo e($category); ?></span>
             </div>
-        @endforeach
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
     </div>
 </section>
 
@@ -83,31 +84,31 @@
 <main class="p-6">
     <h2 class="text-2xl font-semibold mb-4 text-center">Select Your Mahallah Cafeteria</h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        @foreach (['Siddiq','Aminah','Ruqayyah','Halimah','Hafsa','Bilal'] as $mahallah)
-            <a href="{{ url('/cafeteria/' . strtolower($mahallah)) }}"
+        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = ['Siddiq','Aminah','Ruqayyah','Halimah','Hafsa','Bilal']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mahallah): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <a href="<?php echo e(url('/cafeteria/' . strtolower($mahallah))); ?>"
                class="block bg-white p-4 rounded shadow border border-gray-200 text-center transform hover:scale-105 hover:bg-pink-50 transition duration-300">
-                <img src="{{ asset('images/' . strtolower($mahallah) . '.png') }}"
-                     alt="{{ $mahallah }} Logo"
+                <img src="<?php echo e(asset('images/' . strtolower($mahallah) . '.png')); ?>"
+                     alt="<?php echo e($mahallah); ?> Logo"
                      class="mx-auto w-24 h-24 object-cover rounded mb-3">
-                <h3 class="text-lg font-bold text-pink-700">{{ $mahallah }} Cafeteria</h3>
+                <h3 class="text-lg font-bold text-pink-700"><?php echo e($mahallah); ?> Cafeteria</h3>
                 <p class="text-sm text-gray-600">Order your meals here</p>
             </a>
-        @endforeach
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
     </div>
 </main>
 
 <!-- ✅ Bottom Posters -->
 <div class="w-full mt-6">
-    <img src="{{ asset('images/poster3.png') }}" class="w-full object-cover" alt="Poster 3">
-    <img src="{{ asset('images/poster5.png') }}" class="w-full object-cover" alt="Poster 5">
+    <img src="<?php echo e(asset('images/poster3.png')); ?>" class="w-full object-cover" alt="Poster 3">
+    <img src="<?php echo e(asset('images/poster5.png')); ?>" class="w-full object-cover" alt="Poster 5">
 </div>
 
 <!-- ✅ JS for Hero Slideshow -->
 <script>
     const heroPosters = [
-        "{{ asset('images/poster1.png') }}",
-        "{{ asset('images/poster2.png') }}",
-        "{{ asset('images/poster8.png') }}"
+        "<?php echo e(asset('images/poster1.png')); ?>",
+        "<?php echo e(asset('images/poster2.png')); ?>",
+        "<?php echo e(asset('images/poster8.png')); ?>"
     ];
 
     let current = 0;
@@ -154,3 +155,4 @@
 
 </body>
 </html>
+<?php /**PATH C:\Users\Syazira Naim\UniMeal\resources\views/student/home.blade.php ENDPATH**/ ?>

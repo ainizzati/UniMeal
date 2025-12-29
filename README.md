@@ -1031,12 +1031,7 @@ APP_DEBUG=false
 
 <img width="1331" height="681" alt="image" src="https://github.com/user-attachments/assets/17f3a8d3-3ce1-4e20-b68e-6451a75e4363" />
 
-__vi. File Security Principles__
-
-```markdown
-# File Leakage Prevention and Web Server Security Configuration
-
-## How We Prevent File Leaks in UniMeal
+#__vi. File Security Principles__
 
 ### 1. Environment File Protection
 
@@ -1044,7 +1039,6 @@ __vi. File Security Principles__
 
 **A. Git Exclusion**
 We added sensitive files to `.gitignore` to prevent them from being committed to the repository:
-
 ```gitignore
 /node_modules
 /public/hot
@@ -1068,7 +1062,6 @@ yarn-error.log
 
 **B. Apache Access Control**
 We configured `.htaccess` in the project root to deny direct access to `.env` files:
-
 ```apache
 <Files .env>
     Order allow,deny
@@ -1107,6 +1100,7 @@ As shown in our testing screenshots, detailed error messages were displayed incl
 - Stack traces showing code structure
 - Line numbers and code snippets
 
+![Database Error with Debug True](images/error_debug_true.png)
 
 **When APP_DEBUG=false (Production):**
 Generic error pages are shown without revealing:
@@ -1115,6 +1109,7 @@ Generic error pages are shown without revealing:
 - Sensitive configuration
 - Code implementation
 
+![Generic Error Page](images/error_production.png)
 
 ---
 
@@ -1123,7 +1118,6 @@ Generic error pages are shown without revealing:
 #### Laravel's Public Directory Architecture
 
 Our web server is configured to serve files **only from the `/public` directory**:
-
 ```
 UniMeal/
 ├── app/                    # ❌ NOT web-accessible
@@ -1161,7 +1155,6 @@ $app = require_once __DIR__.'/../bootstrap/app.php';
 #### Implementation in OrderController.php
 
 We implemented authorization checks to prevent unauthorized access to other users' orders:
-
 ```php
 public function track($id)
 {
@@ -1181,11 +1174,11 @@ public function track($id)
 2. Student B logs in and tries to access `/orders/track/1`
 3. Result: **403 Forbidden** error page displayed
 
+![IDOR Prevention Test](images/idor_test.png)
 
 #### Policy-Based Authorization
 
 We created `OrderPolicy.php` for centralized authorization:
-
 ```php
 <?php
 
@@ -1226,7 +1219,6 @@ public function track($id)
 ### 1. XAMPP Apache Virtual Host Configuration
 
 #### Location: `C:\xampp\apache\conf\extra\httpd-vhosts.conf`
-
 ```apache
 <VirtualHost *:80>
     ServerName unimeal.local
@@ -1253,7 +1245,6 @@ public function track($id)
 ### 2. Laravel .htaccess Configuration
 
 #### Location: `public/.htaccess`
-
 ```apache
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
@@ -1290,7 +1281,6 @@ public function track($id)
 #### SQL Injection Prevention
 
 We used **Laravel Eloquent ORM** and **prepared statements** throughout the application:
-
 ```php
 // SECURE - Using Eloquent ORM
 public function login(Request $request)
@@ -1319,6 +1309,7 @@ We tested SQL injection attempts on the login form:
 | `ain@gmail.com' --` | Browser validation rejected |
 | `abubakar@gmail.com'` | Browser validation rejected |
 
+![SQL Injection Test](images/sql_injection_test.png)
 
 **Why It Failed:**
 1. **Client-side validation**: HTML5 email validation
@@ -1330,7 +1321,6 @@ We tested SQL injection attempts on the login form:
 ### 4. Session Security Configuration
 
 #### Settings in .env
-
 ```env
 SESSION_DRIVER=database
 SESSION_LIFETIME=60
@@ -1351,7 +1341,6 @@ SESSION_SAME_SITE=strict
 ### 5. File Upload Security (Menu Images)
 
 #### Validation Rules
-
 ```php
 public function store(Request $request)
 {
@@ -1385,7 +1374,6 @@ public function store(Request $request)
 #### Strong Password Policy
 
 **Implementation in AppServiceProvider.php:**
-
 ```php
 use Illuminate\Validation\Rules\Password;
 
@@ -1409,12 +1397,12 @@ public function boot(): void
 - ✅ Must contain numbers
 - ✅ Must contain symbols
 - ✅ Checked against Have I Been Pwned database
-  
+
+![Password Validation](images/password_validation.png)
 
 #### Account Lockout Mechanism
 
 **LoginAttempt Model** tracks failed logins:
-
 ```php
 Schema::create('login_attempts', function (Blueprint $table) {
     $table->id();
@@ -1425,7 +1413,6 @@ Schema::create('login_attempts', function (Blueprint $table) {
 ```
 
 **Implementation in StudentAuthController.php:**
-
 ```php
 public function login(Request $request)
 {
@@ -1464,6 +1451,7 @@ public function login(Request $request)
 - 15-minute lockout period
 - Failed attempts cleared on successful login
 
+![Account Lockout](images/account_lockout.png)
 
 ---
 
@@ -1517,7 +1505,6 @@ Based on our Assignment 8 testing:
 7. **`database/migrations/xxx_create_login_attempts_table.php`** - Failed login tracking
 
 ### Environment Configuration (.env):
-
 ```env
 # Application
 APP_ENV=production
@@ -1554,6 +1541,14 @@ When deploying to a production server:
 8. ✅ Monitor `storage/logs/laravel.log` for security events
 9. ✅ Backup database regularly
 10. ✅ Use strong database credentials
+
+---
+
+## References
+
+- Laravel Security Best Practices: https://laravel.com/docs/security
+- OWASP Top 10: https://owasp.org/www-project-top-ten/
+- Assignment 8 Documentation: `SECURITY_ENHANCEMENTS.md`, `AUTHORIZATION_ENHANCEMENTS.md`
 
 ---
 

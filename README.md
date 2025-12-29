@@ -1071,7 +1071,6 @@ As shown in our testing screenshots, detailed error messages were displayed incl
 - Stack traces showing code structure
 - Line numbers and code snippets
 
-![Database Error with Debug True](images/error_debug_true.png)
 
 **When APP_DEBUG=false (Production):**
 Generic error pages are shown without revealing:
@@ -1080,7 +1079,6 @@ Generic error pages are shown without revealing:
 - Sensitive configuration
 - Code implementation
 
-![Generic Error Page](images/error_production.png)
 
 ---
 
@@ -1147,7 +1145,6 @@ public function track($id)
 2. Student B logs in and tries to access `/orders/track/1`
 3. Result: **403 Forbidden** error page displayed
 
-![IDOR Prevention Test](images/idor_test.png)
 
 #### Policy-Based Authorization
 
@@ -1286,7 +1283,6 @@ We tested SQL injection attempts on the login form:
 | `ain@gmail.com' --` | Browser validation rejected |
 | `abubakar@gmail.com'` | Browser validation rejected |
 
-![SQL Injection Test](images/sql_injection_test.png)
 
 **Why It Failed:**
 1. **Client-side validation**: HTML5 email validation
@@ -1377,8 +1373,7 @@ public function boot(): void
 - ✅ Must contain numbers
 - ✅ Must contain symbols
 - ✅ Checked against Have I Been Pwned database
-
-![Password Validation](images/password_validation.png)
+  
 
 #### Account Lockout Mechanism
 
@@ -1433,7 +1428,6 @@ public function login(Request $request)
 - 15-minute lockout period
 - Failed attempts cleared on successful login
 
-![Account Lockout](images/account_lockout.png)
 
 ---
 
@@ -1533,8 +1527,6 @@ When deploying to a production server:
 - OWASP Top 10: https://owasp.org/www-project-top-ten/
 - Assignment 8 Documentation: `SECURITY_ENHANCEMENTS.md`, `AUTHORIZATION_ENHANCEMENTS.md`
 ```
-
-This answer is based on the **actual implementation** visible in your UniMeal project repository and the security enhancements documented in your Assignment 8 files. You can add relevant screenshots from your testing to the `images/` folder and reference them in the markdown.
 
 ## 7.0 References
 

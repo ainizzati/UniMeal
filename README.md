@@ -1744,9 +1744,9 @@ The UniMeal Laravel application demonstrates **professional-grade security imple
 
 ## References
 
-- Laravel Security Best Practices: https://laravel.com/docs/security
-- OWASP Top 10: https://owasp.org/www-project-top-ten/
-- Assignment 8 Documentation: `SECURITY_ENHANCEMENTS.md`, `AUTHORIZATION_ENHANCEMENTS.md`
+- [Laravel Security Documentation](https://laravel.com/docs/security)
+- [OWASP Security Guidelines](https://owasp.org/)
+- [Apache Security Tips](https://httpd.apache.org/docs/2.4/misc/security_tips.html)
 ```
 
 ## 7.0 References

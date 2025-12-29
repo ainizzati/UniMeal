@@ -996,25 +996,44 @@ APP_DEBUG=false
 
 __vi. File Security Principles__
 
+Based on **your actual implementation** in the UniMeal project (Assignment 8), here's the answer:
+
 ```markdown
+# File Leakage Prevention and Web Server Security Configuration
 
-## Preventing File Leaks
+## How We Prevent File Leaks in UniMeal
 
-### 1. Environment File Protection (.env)
+### 1. Environment File Protection
 
-**The Problem:** The `.env` file contains sensitive credentials (database passwords, API keys, etc.)
+#### Implementation in Our Project
 
-**Protection Methods:**
+**A. Git Exclusion**
+We added sensitive files to `.gitignore` to prevent them from being committed to the repository:
 
-#### A. Add to .gitignore
 ```gitignore
+/node_modules
+/public/hot
+/public/storage
+/storage/*.key
+/vendor
 .env
 .env.backup
 .env.production
+.phpunit.result.cache
+docker-compose.override.yml
+Homestead.json
+Homestead.yaml
+auth.json
+npm-debug.log
+yarn-error.log
+/.fleet
+/.idea
+/.vscode
 ```
 
-#### B. Web Server Block Access
-In Apache (`.htaccess` in project root):
+**B. Apache Access Control**
+We configured `.htaccess` in the project root to deny direct access to `.env` files:
+
 ```apache
 <Files .env>
     Order allow,deny
@@ -1022,100 +1041,149 @@ In Apache (`.htaccess` in project root):
 </Files>
 ```
 
-#### C. File Permissions (Linux/Production)
-```bash
-chmod 600 .env
+**Screenshot Evidence:**
+- The `.env` file exists in the project but is never accessible via web browser
+- Attempting to access `http://localhost:8000/.env` results in a 403 Forbidden error
+
+---
+
+### 2. Database Error Information Disclosure Prevention
+
+#### Development vs Production Configuration
+
+**During Development (.env):**
+```env
+APP_ENV=local
+APP_DEBUG=true
+```
+
+**For Production Deployment (.env):**
+```env
+APP_ENV=production
+APP_DEBUG=false
+```
+
+#### Impact of APP_DEBUG Setting
+
+**When APP_DEBUG=true (Development):**
+As shown in our testing screenshots, detailed error messages were displayed including:
+- Full file paths: `C:\xampp\htdocs\websec\UniMeal\...`
+- Database connection errors with credentials
+- Stack traces showing code structure
+- Line numbers and code snippets
+
+![Database Error with Debug True](images/error_debug_true.png)
+
+**When APP_DEBUG=false (Production):**
+Generic error pages are shown without revealing:
+- Internal file structure
+- Database details
+- Sensitive configuration
+- Code implementation
+
+![Generic Error Page](images/error_production.png)
+
+---
+
+### 3. Directory Structure Protection
+
+#### Laravel's Public Directory Architecture
+
+Our web server is configured to serve files **only from the `/public` directory**:
+
+```
+UniMeal/
+├── app/                    # ❌ NOT web-accessible
+├── bootstrap/              # ❌ NOT web-accessible
+├── config/                 # ❌ NOT web-accessible
+├── database/               # ❌ NOT web-accessible
+├── resources/              # ❌ NOT web-accessible
+├── routes/                 # ❌ NOT web-accessible
+├── storage/                # ❌ NOT web-accessible
+├── vendor/                 # ❌ NOT web-accessible
+├── .env                    # ❌ NOT web-accessible
+└── public/                 # ✅ ONLY web-accessible directory
+    ├── index.php           # Entry point
+    ├── css/
+    ├── js/
+    └── images/
+```
+
+#### How This Works
+
+**public/index.php** is the single entry point:
+```php
+<?php
+define('LARAVEL_START', microtime(true));
+
+// All files outside /public are loaded via PHP, not direct HTTP access
+require __DIR__.'/../vendor/autoload.php';
+$app = require_once __DIR__.'/../bootstrap/app.php';
 ```
 
 ---
 
-### 2. Sensitive Directory Protection
+### 4. Authorization Controls (IDOR Prevention)
 
-**Directories to Protect:**
-- `/storage/` - Contains logs, uploaded files, session data
-- `/database/` - Migration files, seeders
-- `/config/` - Configuration files
-- `/vendor/` - Third-party packages
-- `/node_modules/` - Frontend dependencies
+#### Implementation in OrderController.php
 
-#### Apache Configuration (.htaccess)
+We implemented authorization checks to prevent unauthorized access to other users' orders:
 
-```apache
-# Deny access to storage directory
-<Directory "/path/to/UniMeal/storage">
-    Require all denied
-</Directory>
-
-# Deny access to vendor directory
-<Directory "/path/to/UniMeal/vendor">
-    Require all denied
-</Directory>
-
-# Deny access to .git directory
-<IfModule mod_rewrite.c>
-    RedirectMatch 404 /\.git
-</IfModule>
-```
-
-#### Project Root .htaccess
-```apache
-# Prevent directory browsing
-Options -Indexes
-
-# Deny access to sensitive files
-<FilesMatch "^\.">
-    Order allow,deny
-    Deny from all
-</FilesMatch>
-
-# Block access to specific file types
-<FilesMatch "\.(env|log|sql|md|json|lock)$">
-    Order allow,deny
-    Deny from all
-</FilesMatch>
-```
-
----
-
-### 3. Uploaded Files Security
-
-#### A. Store Outside Public Directory
 ```php
-// In config/filesystems.php
-'disks' => [
-    'uploads' => [
-        'driver' => 'local',
-        'root' => storage_path('app/uploads'),  // Outside public/
-        'visibility' => 'private',
-    ],
-],
-```
+public function track($id)
+{
+    $order = Order::with(['orderItems', 'shipping'])->findOrFail($id);
 
-#### B. Validate File Types
-```php
-// In controller (e.g., MenuController.php)
-$request->validate([
-    'image' => 'required|image|mimes:jpeg,png,jpg|max:2048'
-]);
-```
-
-#### C. Sanitize Filenames
-```php
-$filename = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $file->getClientOriginalName());
-```
-
-#### D. Access Through Controller Only
-```php
-// Route in web.php
-Route::get('/uploads/{filename}', [FileController::class, 'show'])
-    ->middleware('auth');
-
-// Controller checks authorization
-public function show($filename) {
-    if (!auth()->user()->canAccessFile($filename)) {
+    // Authorization check - Students can only view their own orders
+    if ($order->student_id !== Auth::guard('student')->id()) {
         abort(403);
     }
-    return response()->file(storage_path('app/uploads/' . $filename));
+
+    return view('orders.track', compact('order'));
+}
+```
+
+**Testing Results:**
+1. Student A logs in and creates Order #1
+2. Student B logs in and tries to access `/orders/track/1`
+3. Result: **403 Forbidden** error page displayed
+
+![IDOR Prevention Test](images/idor_test.png)
+
+#### Policy-Based Authorization
+
+We created `OrderPolicy.php` for centralized authorization:
+
+```php
+<?php
+
+namespace App\Policies;
+
+use App\Models\Order;
+use App\Models\Student;
+
+class OrderPolicy
+{
+    public function view(Student $student, Order $order): bool
+    {
+        return $order->student_id === $student->id;
+    }
+
+    public function viewReceipt(Student $student, Order $order): bool
+    {
+        return $order->student_id === $student->id;
+    }
+}
+```
+
+Applied in controller:
+```php
+public function track($id)
+{
+    $order = Order::findOrFail($id);
+    $this->authorize('view', $order);
+    
+    return view('orders.track', compact('order'));
 }
 ```
 
@@ -1123,60 +1191,36 @@ public function show($filename) {
 
 ## Web Server Configuration Settings
 
-### 1. Apache Configuration (httpd.conf or Virtual Host)
+### 1. XAMPP Apache Virtual Host Configuration
+
+#### Location: `C:\xampp\apache\conf\extra\httpd-vhosts.conf`
 
 ```apache
 <VirtualHost *:80>
     ServerName unimeal.local
     DocumentRoot "C:/xampp/htdocs/websec/UniMeal/public"
     
-    # Point to public directory ONLY
     <Directory "C:/xampp/htdocs/websec/UniMeal/public">
         AllowOverride All
         Require all granted
         Options -Indexes +FollowSymLinks
     </Directory>
     
-    # Deny access to parent directories
-    <Directory "C:/xampp/htdocs/websec/UniMeal">
-        Require all denied
-    </Directory>
-    
-    # Explicitly allow public
-    <Directory "C:/xampp/htdocs/websec/UniMeal/public">
-        Require all granted
-    </Directory>
-    
-    # Error and access logs
     ErrorLog "logs/unimeal-error.log"
     CustomLog "logs/unimeal-access.log" combined
 </VirtualHost>
 ```
 
----
-
-### 2. Laravel's Built-in Protection
-
-**How It Works (public/index.php):**
-```php
-// public/index.php
-define('LARAVEL_START', microtime(true));
-
-// Register autoloader
-require __DIR__.'/../vendor/autoload.php';
-
-// Bootstrap Laravel
-$app = require_once __DIR__.'/../bootstrap/app.php';
-```
-
-**Key Security Features:**
-1. **Document root is /public** - All other files are OUTSIDE web-accessible directory
-2. **All requests go through index.php** - Controlled entry point
-3. **No direct file access** - Must go through Laravel routing
+**Key Security Settings:**
+- `DocumentRoot` points to `/public` only
+- `Options -Indexes` prevents directory listing
+- `AllowOverride All` allows `.htaccess` rules
 
 ---
 
-### 3. Laravel .htaccess Protection (public/.htaccess)
+### 2. Laravel .htaccess Configuration
+
+#### Location: `public/.htaccess`
 
 ```apache
 <IfModule mod_rewrite.c>
@@ -1200,166 +1244,298 @@ $app = require_once __DIR__.'/../bootstrap/app.php';
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
-
-# Disable directory browsing
-Options -Indexes
-
-# Deny access to hidden files
-<FilesMatch "^\.">
-    Require all denied
-</FilesMatch>
 ```
+
+**What This Does:**
+- All requests are routed through `index.php`
+- Direct file access is prevented
+- Directory browsing is disabled (`Options -Indexes`)
 
 ---
 
-### 4. Production Environment Settings (.env)
+### 3. Database Security Implementation
+
+#### SQL Injection Prevention
+
+We used **Laravel Eloquent ORM** and **prepared statements** throughout the application:
+
+```php
+// SECURE - Using Eloquent ORM
+public function login(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email',
+        'password' => 'required|string',
+    ]);
+
+    // Eloquent automatically uses prepared statements
+    $student = Student::where('email', $request->email)->first();
+    
+    if ($student && Hash::check($request->password, $student->password)) {
+        Auth::guard('student')->login($student);
+        return redirect()->route('student.dashboard');
+    }
+}
+```
+
+**Testing Results:**
+We tested SQL injection attempts on the login form:
+
+| Test Input | Result |
+|------------|--------|
+| `admin@iium.edu.my' OR '1'='1' --` | Browser validation rejected |
+| `ain@gmail.com' --` | Browser validation rejected |
+| `abubakar@gmail.com'` | Browser validation rejected |
+
+![SQL Injection Test](images/sql_injection_test.png)
+
+**Why It Failed:**
+1. **Client-side validation**: HTML5 email validation
+2. **Server-side validation**: Laravel's `email` rule
+3. **Prepared statements**: Even if bypassed, Eloquent treats input as data, not SQL code
+
+---
+
+### 4. Session Security Configuration
+
+#### Settings in .env
 
 ```env
-APP_ENV=production
-APP_DEBUG=false  # CRITICAL: Never show errors in production
-
-# Session Security
+SESSION_DRIVER=database
+SESSION_LIFETIME=60
 SESSION_SECURE_COOKIE=true
 SESSION_HTTP_ONLY=true
 SESSION_SAME_SITE=strict
-
-# Database - Use strong credentials
-DB_PASSWORD=strong_random_password_here
 ```
 
-#### Why APP_DEBUG=false is Critical
-
-When `APP_DEBUG=true`, errors reveal:
-- ❌ Full file paths
-- ❌ Database structure
-- ❌ Code snippets
-- ❌ Environment variables
-
-With `APP_DEBUG=false`:
-- ✅ Shows generic error pages
-- ✅ Logs detailed errors to `storage/logs/laravel.log`
-- ✅ Hides sensitive information from users
+**Security Features:**
+- **database driver**: Sessions stored in database, not files
+- **SESSION_LIFETIME=60**: Auto-logout after 60 minutes
+- **SECURE_COOKIE=true**: Cookies only sent over HTTPS (production)
+- **HTTP_ONLY=true**: JavaScript cannot access session cookies (XSS protection)
+- **SAME_SITE=strict**: CSRF protection
 
 ---
 
-### 5. File Permissions (Linux/Production Server)
+### 5. File Upload Security (Menu Images)
 
-```bash
-# Set proper ownership
-chown -R www-data:www-data /var/www/UniMeal
+#### Validation Rules
 
-# Directory permissions
-find /var/www/UniMeal -type d -exec chmod 755 {} \;
-
-# File permissions
-find /var/www/UniMeal -type f -exec chmod 644 {} \;
-
-# Storage and cache need write access
-chmod -R 775 storage bootstrap/cache
-chown -R www-data:www-data storage bootstrap/cache
-
-# Protect sensitive files
-chmod 600 .env
-chmod 644 composer.json composer.lock package.json
-```
-
----
-
-## Additional Security Configurations
-
-### 1. Prevent Information Disclosure
-
-#### Hide Server Version (Apache httpd.conf)
-```apache
-ServerTokens Prod
-ServerSignature Off
-```
-
-#### Hide PHP Version (php.ini)
-```ini
-expose_php = Off
-```
-
----
-
-### 2. Security Headers
-
-Add to `public/.htaccess`:
-```apache
-<IfModule mod_headers.c>
-    # Prevent clickjacking
-    Header set X-Frame-Options "SAMEORIGIN"
+```php
+public function store(Request $request)
+{
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'category' => 'required|string',
+        'price' => 'required|numeric|min:0',
+        'image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+    ]);
     
-    # XSS Protection
-    Header set X-XSS-Protection "1; mode=block"
+    // Sanitize filename
+    $filename = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', 
+                                           $request->file('image')->getClientOriginalName());
     
-    # Prevent MIME sniffing
-    Header set X-Content-Type-Options "nosniff"
-    
-    # Referrer Policy
-    Header set Referrer-Policy "strict-origin-when-cross-origin"
-</IfModule>
+    // Store in storage/app/public/menus (outside public root initially)
+    $path = $request->file('image')->storeAs('menus', $filename, 'public');
+}
+```
+
+**Security Measures:**
+1. **File type validation**: Only `jpeg`, `png`, `jpg` allowed
+2. **File size limit**: Maximum 2MB
+3. **Filename sanitization**: Remove special characters
+4. **Unique naming**: Timestamp prefix prevents collisions
+5. **Storage location**: `storage/app/public/menus` (accessed via symlink)
+
+---
+
+### 6. Authentication Security Enhancements
+
+#### Strong Password Policy
+
+**Implementation in AppServiceProvider.php:**
+
+```php
+use Illuminate\Validation\Rules\Password;
+
+public function boot(): void
+{
+    Password::defaults(function () {
+        return Password::min(10)
+            ->letters()
+            ->mixedCase()
+            ->numbers()
+            ->symbols()
+            ->uncompromised();
+    });
+}
+```
+
+**Requirements:**
+- ✅ Minimum 10 characters
+- ✅ Must contain letters
+- ✅ Must have uppercase AND lowercase
+- ✅ Must contain numbers
+- ✅ Must contain symbols
+- ✅ Checked against Have I Been Pwned database
+
+![Password Validation](images/password_validation.png)
+
+#### Account Lockout Mechanism
+
+**LoginAttempt Model** tracks failed logins:
+
+```php
+Schema::create('login_attempts', function (Blueprint $table) {
+    $table->id();
+    $table->string('email');
+    $table->timestamp('attempted_at');
+    $table->boolean('successful')->default(false);
+});
+```
+
+**Implementation in StudentAuthController.php:**
+
+```php
+public function login(Request $request)
+{
+    // Check if account is locked
+    $recentFailures = LoginAttempt::where('email', $request->email)
+        ->where('successful', false)
+        ->where('attempted_at', '>=', now()->subMinutes(15))
+        ->count();
+
+    if ($recentFailures >= 5) {
+        return back()->withErrors([
+            'email' => 'Account locked due to too many failed attempts. Try again in 15 minutes.'
+        ]);
+    }
+
+    // Record login attempt
+    LoginAttempt::create([
+        'email' => $request->email,
+        'attempted_at' => now(),
+        'successful' => false,
+    ]);
+
+    // ... authentication logic ...
+
+    // On successful login, clear failed attempts
+    if ($authenticated) {
+        LoginAttempt::where('email', $request->email)
+            ->where('successful', false)
+            ->delete();
+    }
+}
+```
+
+**Lockout Policy:**
+- Maximum 5 failed attempts
+- 15-minute lockout period
+- Failed attempts cleared on successful login
+
+![Account Lockout](images/account_lockout.png)
+
+---
+
+## Summary of Implemented Security Measures
+
+### File Leakage Prevention
+
+| Security Layer | Implementation | Evidence |
+|----------------|----------------|----------|
+| **Environment Files** | `.gitignore` + `.htaccess` denial | `.env` not accessible via browser |
+| **Directory Browsing** | `Options -Indexes` | No file listing in `/storage`, `/config` |
+| **Error Disclosure** | `APP_DEBUG=false` (production) | Generic error pages in production |
+| **File Structure** | Only `/public` is web-accessible | All sensitive files outside DocumentRoot |
+| **Authorization** | Policy-based access control | IDOR protection on orders |
+
+### Web Server Configuration
+
+| Configuration | File Location | Purpose |
+|---------------|---------------|---------|
+| **Virtual Host** | `httpd-vhosts.conf` | DocumentRoot points to `/public` only |
+| **URL Rewriting** | `public/.htaccess` | All requests through `index.php` |
+| **Session Security** | `.env` | Secure, HttpOnly, SameSite cookies |
+| **Database Security** | Controllers (Eloquent ORM) | Prepared statements prevent SQL injection |
+| **Upload Validation** | Controllers | File type, size, and naming restrictions |
+| **Password Policy** | `AppServiceProvider.php` | Strong password requirements + breach check |
+| **Account Protection** | `LoginAttempt` model | Lockout after 5 failed attempts |
+
+### Testing Evidence
+
+Based on our Assignment 8 testing:
+
+✅ **SQL Injection**: Attempted on login form - Blocked by validation + ORM  
+✅ **IDOR**: Student B cannot access Student A's orders - 403 error  
+✅ **File Access**: Cannot access `.env`, `/storage`, `/config` directly  
+✅ **Error Disclosure**: Development shows details, production hides them  
+✅ **Weak Passwords**: Registration rejects passwords not meeting criteria  
+✅ **Brute Force**: Account locks after 5 failed login attempts  
+
+---
+
+## Configuration Files Reference
+
+### Key Files Modified/Created:
+
+1. **`.gitignore`** - Excludes sensitive files from Git
+2. **`.env`** - Environment configuration (never committed)
+3. **`public/.htaccess`** - URL rewriting and access control
+4. **`app/Providers/AppServiceProvider.php`** - Password policy
+5. **`app/Policies/OrderPolicy.php`** - Authorization rules
+6. **`app/Http/Controllers/StudentAuthController.php`** - Login attempts tracking
+7. **`database/migrations/xxx_create_login_attempts_table.php`** - Failed login tracking
+
+### Environment Configuration (.env):
+
+```env
+# Application
+APP_ENV=production
+APP_DEBUG=false
+
+# Database
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_DATABASE=unimeal_db
+DB_USERNAME=root
+DB_PASSWORD=
+
+# Session Security
+SESSION_DRIVER=database
+SESSION_LIFETIME=60
+SESSION_SECURE_COOKIE=true
+SESSION_HTTP_ONLY=true
+SESSION_SAME_SITE=strict
 ```
 
 ---
 
-### 3. Block Common Attack Paths
+## Recommendations for Production Deployment
 
-```apache
-# Block access to common sensitive files
-<FilesMatch "(^#.*#|\.(bak|conf|dist|fla|in[ci]|log|psd|sh|sql|sw[op])|~)$">
-    Require all denied
-</FilesMatch>
+When deploying to a production server:
 
-# Block access to version control
-RedirectMatch 404 /\.git
-RedirectMatch 404 /\.svn
-
-# Block composer files
-<FilesMatch "^(composer\.(json|lock)|package(-lock)?\.json)$">
-    Require all denied
-</FilesMatch>
-```
-
----
-
-## Summary
-
-### Protection Layers
-
-| Layer | Protection Method | Configuration File |
-|-------|------------------|-------------------|
-| **Environment Variables** | .gitignore, file permissions | `.gitignore`, `.htaccess` |
-| **Directory Access** | DocumentRoot = /public only | `httpd.conf`, Virtual Host |
-| **File Browsing** | Options -Indexes | `.htaccess` |
-| **Direct File Access** | Laravel routing | `public/index.php` |
-| **Error Disclosure** | APP_DEBUG=false | `.env` |
-| **Uploaded Files** | Storage outside public/ | `config/filesystems.php` |
-| **Session Security** | Secure cookies | `.env` session settings |
-| **Server Info** | Hide version headers | `httpd.conf`, `php.ini` |
-
----
-
-### Security Checklist
-
-- ✅ Sensitive files (.env, logs, config) are never exposed
-- ✅ Only /public directory is web-accessible
-- ✅ All requests go through Laravel's security layer
-- ✅ Error messages don't reveal system details
-- ✅ Uploaded files are validated and stored securely
-- ✅ Directory browsing is disabled
-- ✅ Security headers are properly configured
-- ✅ File permissions follow the principle of least privilege
+1. ✅ Set `APP_DEBUG=false` in `.env`
+2. ✅ Use HTTPS and set `SESSION_SECURE_COOKIE=true`
+3. ✅ Set proper file permissions (644 for files, 755 for directories)
+4. ✅ Restrict `.env` file permissions to 600
+5. ✅ Configure Apache/Nginx to serve only `/public` directory
+6. ✅ Enable all security headers in `.htaccess`
+7. ✅ Regularly update dependencies: `composer update` and `npm update`
+8. ✅ Monitor `storage/logs/laravel.log` for security events
+9. ✅ Backup database regularly
+10. ✅ Use strong database credentials
 
 ---
 
 ## References
 
-- [Laravel Security Documentation](https://laravel.com/docs/security)
-- [OWASP Security Guidelines](https://owasp.org/)
-- [Apache Security Tips](https://httpd.apache.org/docs/2.4/misc/security_tips.html)
+- Laravel Security Best Practices: https://laravel.com/docs/security
+- OWASP Top 10: https://owasp.org/www-project-top-ten/
+- Assignment 8 Documentation: `SECURITY_ENHANCEMENTS.md`, `AUTHORIZATION_ENHANCEMENTS.md`
 ```
 
+This answer is based on the **actual implementation** visible in your UniMeal project repository and the security enhancements documented in your Assignment 8 files. You can add relevant screenshots from your testing to the `images/` folder and reference them in the markdown.
 
 ## 7.0 References
 

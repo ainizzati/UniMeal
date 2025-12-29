@@ -1159,7 +1159,12 @@ Get-ChildItem -Path resources\views -Recurse -Include *.blade.php |
 | Register | `/register` | `TODO`, `admin`, `sk_` | Clean |
 | Checkout | `/checkout` | `stripe`, `pk_`, `total` | Clean |
 
-**Screenshots:** See report pages 9-11
+**Screenshots:**
+(<img width="1888" height="932" alt="Image" src="https://github.com/user-attachments/assets/5bd11e23-9f29-4f4f-b3cb-bab8fa68f28e" />)
+(<img width="1898" height="928" alt="Image" src="https://github.com/user-attachments/assets/5e1c5310-85c4-42df-b62c-2ba017c9bae1" />)
+(<img width="1896" height="922" alt="Image" src="https://github.com/user-attachments/assets/d3d35054-7ba4-43d3-bf93-561c1c3e4a88" />)
+(<img width="1895" height="928" alt="Image" src="https://github.com/user-attachments/assets/c2543366-58e6-42f9-ab3d-35f0e79ed026" />)
+
 
 **Result:** **All client-side code is clean** - No sensitive information exposed.
 

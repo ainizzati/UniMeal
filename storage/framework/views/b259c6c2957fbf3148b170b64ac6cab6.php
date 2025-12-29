@@ -19,6 +19,17 @@
     </div>
 <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
+<?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(session('error')): ?>
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded m-4 relative" role="alert">
+        <strong class="font-bold">⚠️ Cafeteria Closed</strong>
+        <span class="block sm:inline"><?php echo e(session('error')); ?></span>
+    </div>
+    <script>
+        // Show popup alert for error messages
+        alert('⚠️ CAFETERIA CLOSED\n\n<?php echo e(session('error')); ?>');
+    </script>
+<?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+
 <!-- ✅ HEADER -->
 <header class="bg-soft-pink shadow p-4 flex justify-between items-center text-white">
     <img src="<?php echo e(asset('images/unimeal_logo.png')); ?>" alt="UniMeal Logo" class="h-10">

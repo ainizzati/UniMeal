@@ -4,12 +4,24 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class CartController extends Controller
 {
     // Add item to cart
     public function add(Request $request)
     {
+        // Get authenticated student
+        $student = Auth::guard('student')->user();
+
+        // Authorize cart add operation
+        Gate::forUser($student)->authorize('add', CartController::class);
+
+        // Set cart ownership on first add
+        if (!session('cart_owner')) {
+            session(['cart_owner' => $student->matric_no]);
+        }
         // after --> Add validation
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -60,6 +72,12 @@ class CartController extends Controller
     // Show cart items
     public function show()
     {
+        // Get authenticated student
+        $student = Auth::guard('student')->user();
+
+        // Authorize cart view operation
+        Gate::forUser($student)->authorize('view', CartController::class);
+
         $cart = Session::get('cart', []);
         return view('student.cart', compact('cart'));
     }
@@ -67,6 +85,12 @@ class CartController extends Controller
     // Remove item from cart
     public function remove($index)
     {
+        // Get authenticated student
+        $student = Auth::guard('student')->user();
+
+        // Authorize cart remove operation
+        Gate::forUser($student)->authorize('remove', CartController::class);
+
         $index = (int) $index;
         $cart = Session::get('cart', []);
         
@@ -87,6 +111,12 @@ class CartController extends Controller
     // ✅ Update item quantity
     public function update(Request $request, $index)
     {
+        // Get authenticated student
+        $student = Auth::guard('student')->user();
+
+        // Authorize cart update operation
+        Gate::forUser($student)->authorize('update', CartController::class);
+
         // Validate action parameter
         $validated = $request->validate([
             'action' => 'required|string|in:increase,decrease',

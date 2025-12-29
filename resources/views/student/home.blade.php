@@ -18,6 +18,17 @@
     </div>
 @endif
 
+@if(session('error'))
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded m-4 relative" role="alert">
+        <strong class="font-bold">⚠️ Cafeteria Closed</strong>
+        <span class="block sm:inline">{{ session('error') }}</span>
+    </div>
+    <script>
+        // Show popup alert for error messages
+        alert('⚠️ CAFETERIA CLOSED\n\n{{ session('error') }}');
+    </script>
+@endif
+
 <!-- ✅ HEADER -->
 <header class="bg-soft-pink shadow p-4 flex justify-between items-center text-white">
     <img src="{{ asset('images/unimeal_logo.png') }}" alt="UniMeal Logo" class="h-10">

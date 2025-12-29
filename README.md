@@ -997,8 +997,6 @@ APP_DEBUG=false
 
 __vi. File Security Principles__
 
-Based on **your actual implementation** in the UniMeal project (Assignment 8), here's the answer:
-
 ```markdown
 # File Leakage Prevention and Web Server Security Configuration
 

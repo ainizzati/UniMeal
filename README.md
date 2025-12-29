@@ -4,6 +4,7 @@
 2. __NURAIN IZZATI BINTI ABD RAUF__ and __2217978__
 3. __NURSYAZIRA BINTI MOHD NAIM__ and __2214076__
 4. __NUR RAIHAN SYAZWANI BINTI SUHAIMI__ and __2213262__
+5. __NUR ADLINA NAJWA BINTI ROSLI__ and __2213362__
 
 ## 1.0 Introduction
 
@@ -868,6 +869,14 @@ Testing Performed:
 
 Attempted to inject non-fillable fields using modified POST requests
 
+<img width="1512" height="801" alt="image" src="https://github.com/user-attachments/assets/54f29fe3-596b-4591-ac1a-c3ddebf6a398" />
+
+<img width="1540" height="784" alt="image" src="https://github.com/user-attachments/assets/46eee399-314f-46f1-a3b6-65d91eb82326" />
+
+
+<img width="1919" height="969" alt="image" src="https://github.com/user-attachments/assets/83758eeb-367d-48fc-a454-d28e87607cce" />
+
+
 Result: Unauthorized fields were ignored and not stored.
 
 
@@ -901,7 +910,7 @@ Testing Performed:
 Result: Database rejected invalid records.
 
 
-4. Transaction Management (ACID Compliance)
+4. Transaction Management
 
 - Security Principle: Atomicity, Consistency
 
@@ -910,10 +919,49 @@ Result: Database rejected invalid records.
 Critical operations such as order creation and shipping record insertion are wrapped inside database transactions.
 
 ```
-DB::transaction(function () {
-    Order::create([...]);
-    Shipping::create([...]);
+// ============================================
+// TRANSACTION WRAPPER 
+// ============================================
+$order = DB::transaction(function () use ($user, $orderTotal, $shipping, $deliveryOption, $shippingFee, $salesTax, $cart, $validated) {
+    
+    // Create order
+    $order = Order::create([
+        'student_id' => $user->matric_no,
+        'total_amount' => $orderTotal,
+        'address' => $shipping['address'],
+        'delivery_option' => $deliveryOption,
+        'payment_method' => $validated['payment_method'],
+        'shipping_fee' => $shippingFee,
+        'sales_tax' => $salesTax,
+    ]);
+
+    // Set status explicitly
+    $order->status = 'Pending';
+    $order->save();
+
+    // Create shipping record
+    Shipping::create([
+        'order_id' => $order->id,
+        'name' => $shipping['name'],
+        'phone' => $shipping['phone'],
+        'address' => $shipping['address'],
+    ]);
+
+    // Create order items
+    foreach ($cart as $item) {
+        OrderItem::create([
+            'order_id' => $order->id,
+            'name' => $item['name'],
+            'price' => $item['price'],
+            'image' => $item['image'],
+            'quantity' => $item['quantity'],
+        ]);
+    }
+
+    // IMPORTANT: Return the order so it's accessible outside
+    return $order;
 });
+// Now $order is accessible here for the redirect
 ```
 
 Security Impact:
@@ -927,6 +975,13 @@ Security Impact:
 Testing Performed:
 
 Forced exceptions during transaction execution
+
+<img width="1512" height="801" alt="image" src="https://github.com/user-attachments/assets/9fa5f660-3e2c-4b84-8aac-27fb38b5b25f" />
+
+<img width="1568" height="782" alt="image" src="https://github.com/user-attachments/assets/6fb3cb23-4044-474c-8f24-c804a1abb349" />
+
+<img width="1568" height="704" alt="image" src="https://github.com/user-attachments/assets/65e20924-e96a-4bd2-8b83-bd6b8a39dca3" />
+
 
 Result: All changes were rolled back successfully
 
@@ -973,82 +1028,538 @@ APP_DEBUG=false
 
 <img width="1331" height="681" alt="image" src="https://github.com/user-attachments/assets/17f3a8d3-3ce1-4e20-b68e-6451a75e4363" />
 
-6. Database Access Control (Least Privilege)
-
-Security Principle: Principle of Least Privilege
-
-Layer: Database User Permissions
-
-The application uses a dedicated database user with restricted privileges.
-
-Granted Permissions:
-
-- SELECT
-- INSERT
-- UPDATE
-- DELETE
-
-Restricted Permissions:
-- DROP
-- ALTER
-- GRANT
-
-Security Impact:
-- Limits damage if application is compromised
-- Prevents schema modification and data destruction
-
-Testing Performed:
-
-Attempted DROP TABLE and ALTER TABLE commands using the application database user
-
-Result: All unauthorized operations were denied.
-
 __vi. File Security Principles__
 
-## 4.0 Entity Relationship Diagram (ERD)
+```markdown
+# File Leakage Prevention and Web Server Security Configuration
 
-<img src="./images/erddiagram.png" width="60%">
+## How We Prevent File Leaks in UniMeal
 
-## 5.0 Sequence Diagram 
-<img src="./images/sequenced.jpg" width="60%">
+### 1. Environment File Protection
 
-## 6.0 Mockup (Figma link : https://www.figma.com/design/0xzzvD9iEsLNKpqIGoBAka/UNIMEAL?node-id=210-2&t=xwdXG33riCfDR0uM-1)
-### Registration Page
-#### Student Registration Page
-<img src="./images/Register page student.png" width="60%">
+#### Implementation in Our Project
 
-#### Vendor Registration Page
-<img src="./images/Register vendor.png" width="60%">
+**A. Git Exclusion**
+We added sensitive files to `.gitignore` to prevent them from being committed to the repository:
 
-### Login page
-<img src="./images/Login.png" width="60%">
+```gitignore
+/node_modules
+/public/hot
+/public/storage
+/storage/*.key
+/vendor
+.env
+.env.backup
+.env.production
+.phpunit.result.cache
+docker-compose.override.yml
+Homestead.json
+Homestead.yaml
+auth.json
+npm-debug.log
+yarn-error.log
+/.fleet
+/.idea
+/.vscode
+```
 
-### Homepage
-<img src="./images/homepage.png" width="60%">
+**B. Apache Access Control**
+We configured `.htaccess` in the project root to deny direct access to `.env` files:
 
-### Vendor Dashboard Page
-<img src="./images/vendor dashboard.png" width="60%">
+```apache
+<Files .env>
+    Order allow,deny
+    Deny from all
+</Files>
+```
 
-### Food Selection Page
-<img src="./images/food details page.png" width="60%">
+**Screenshot Evidence:**
+- The `.env` file exists in the project but is never accessible via web browser
+- Attempting to access `http://localhost:8000/.env` results in a 403 Forbidden error
 
-### Place Order Page
-<img src="./images/ordering page.png" width="60%">
+---
 
-### Shipping Details Page
-<img src="./images/shipping.png" width="60%">
+### 2. Database Error Information Disclosure Prevention
 
-### Delivery Option Page
-<img src="./images/delivery.png" width="60%">
+#### Development vs Production Configuration
 
-### Payment Method Page
-<img src="./images/payment 1.png" width="60%">
-<img src="./images/payment 2.png" width="60%">
+**During Development (.env):**
+```env
+APP_ENV=local
+APP_DEBUG=true
+```
 
-### Track Order Page
-<img src="./images/order tracking.png" width="60%">
-<img src="./images/order tracking 2.png" width="60%">
+**For Production Deployment (.env):**
+```env
+APP_ENV=production
+APP_DEBUG=false
+```
 
+#### Impact of APP_DEBUG Setting
+
+**When APP_DEBUG=true (Development):**
+As shown in our testing screenshots, detailed error messages were displayed including:
+- Full file paths: `C:\xampp\htdocs\websec\UniMeal\...`
+- Database connection errors with credentials
+- Stack traces showing code structure
+- Line numbers and code snippets
+
+
+**When APP_DEBUG=false (Production):**
+Generic error pages are shown without revealing:
+- Internal file structure
+- Database details
+- Sensitive configuration
+- Code implementation
+
+
+---
+
+### 3. Directory Structure Protection
+
+#### Laravel's Public Directory Architecture
+
+Our web server is configured to serve files **only from the `/public` directory**:
+
+```
+UniMeal/
+├── app/                    # ❌ NOT web-accessible
+├── bootstrap/              # ❌ NOT web-accessible
+├── config/                 # ❌ NOT web-accessible
+├── database/               # ❌ NOT web-accessible
+├── resources/              # ❌ NOT web-accessible
+├── routes/                 # ❌ NOT web-accessible
+├── storage/                # ❌ NOT web-accessible
+├── vendor/                 # ❌ NOT web-accessible
+├── .env                    # ❌ NOT web-accessible
+└── public/                 # ✅ ONLY web-accessible directory
+    ├── index.php           # Entry point
+    ├── css/
+    ├── js/
+    └── images/
+```
+
+#### How This Works
+
+**public/index.php** is the single entry point:
+```php
+<?php
+define('LARAVEL_START', microtime(true));
+
+// All files outside /public are loaded via PHP, not direct HTTP access
+require __DIR__.'/../vendor/autoload.php';
+$app = require_once __DIR__.'/../bootstrap/app.php';
+```
+
+---
+
+### 4. Authorization Controls (IDOR Prevention)
+
+#### Implementation in OrderController.php
+
+We implemented authorization checks to prevent unauthorized access to other users' orders:
+
+```php
+public function track($id)
+{
+    $order = Order::with(['orderItems', 'shipping'])->findOrFail($id);
+
+    // Authorization check - Students can only view their own orders
+    if ($order->student_id !== Auth::guard('student')->id()) {
+        abort(403);
+    }
+
+    return view('orders.track', compact('order'));
+}
+```
+
+**Testing Results:**
+1. Student A logs in and creates Order #1
+2. Student B logs in and tries to access `/orders/track/1`
+3. Result: **403 Forbidden** error page displayed
+
+
+#### Policy-Based Authorization
+
+We created `OrderPolicy.php` for centralized authorization:
+
+```php
+<?php
+
+namespace App\Policies;
+
+use App\Models\Order;
+use App\Models\Student;
+
+class OrderPolicy
+{
+    public function view(Student $student, Order $order): bool
+    {
+        return $order->student_id === $student->id;
+    }
+
+    public function viewReceipt(Student $student, Order $order): bool
+    {
+        return $order->student_id === $student->id;
+    }
+}
+```
+
+Applied in controller:
+```php
+public function track($id)
+{
+    $order = Order::findOrFail($id);
+    $this->authorize('view', $order);
+    
+    return view('orders.track', compact('order'));
+}
+```
+
+---
+
+## Web Server Configuration Settings
+
+### 1. XAMPP Apache Virtual Host Configuration
+
+#### Location: `C:\xampp\apache\conf\extra\httpd-vhosts.conf`
+
+```apache
+<VirtualHost *:80>
+    ServerName unimeal.local
+    DocumentRoot "C:/xampp/htdocs/websec/UniMeal/public"
+    
+    <Directory "C:/xampp/htdocs/websec/UniMeal/public">
+        AllowOverride All
+        Require all granted
+        Options -Indexes +FollowSymLinks
+    </Directory>
+    
+    ErrorLog "logs/unimeal-error.log"
+    CustomLog "logs/unimeal-access.log" combined
+</VirtualHost>
+```
+
+**Key Security Settings:**
+- `DocumentRoot` points to `/public` only
+- `Options -Indexes` prevents directory listing
+- `AllowOverride All` allows `.htaccess` rules
+
+---
+
+### 2. Laravel .htaccess Configuration
+
+#### Location: `public/.htaccess`
+
+```apache
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Redirect Trailing Slashes If Not A Folder
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Send Requests To Front Controller
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+```
+
+**What This Does:**
+- All requests are routed through `index.php`
+- Direct file access is prevented
+- Directory browsing is disabled (`Options -Indexes`)
+
+---
+
+### 3. Database Security Implementation
+
+#### SQL Injection Prevention
+
+We used **Laravel Eloquent ORM** and **prepared statements** throughout the application:
+
+```php
+// SECURE - Using Eloquent ORM
+public function login(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email',
+        'password' => 'required|string',
+    ]);
+
+    // Eloquent automatically uses prepared statements
+    $student = Student::where('email', $request->email)->first();
+    
+    if ($student && Hash::check($request->password, $student->password)) {
+        Auth::guard('student')->login($student);
+        return redirect()->route('student.dashboard');
+    }
+}
+```
+
+**Testing Results:**
+We tested SQL injection attempts on the login form:
+
+| Test Input | Result |
+|------------|--------|
+| `admin@iium.edu.my' OR '1'='1' --` | Browser validation rejected |
+| `ain@gmail.com' --` | Browser validation rejected |
+| `abubakar@gmail.com'` | Browser validation rejected |
+
+
+**Why It Failed:**
+1. **Client-side validation**: HTML5 email validation
+2. **Server-side validation**: Laravel's `email` rule
+3. **Prepared statements**: Even if bypassed, Eloquent treats input as data, not SQL code
+
+---
+
+### 4. Session Security Configuration
+
+#### Settings in .env
+
+```env
+SESSION_DRIVER=database
+SESSION_LIFETIME=60
+SESSION_SECURE_COOKIE=true
+SESSION_HTTP_ONLY=true
+SESSION_SAME_SITE=strict
+```
+
+**Security Features:**
+- **database driver**: Sessions stored in database, not files
+- **SESSION_LIFETIME=60**: Auto-logout after 60 minutes
+- **SECURE_COOKIE=true**: Cookies only sent over HTTPS (production)
+- **HTTP_ONLY=true**: JavaScript cannot access session cookies (XSS protection)
+- **SAME_SITE=strict**: CSRF protection
+
+---
+
+### 5. File Upload Security (Menu Images)
+
+#### Validation Rules
+
+```php
+public function store(Request $request)
+{
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'category' => 'required|string',
+        'price' => 'required|numeric|min:0',
+        'image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+    ]);
+    
+    // Sanitize filename
+    $filename = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', 
+                                           $request->file('image')->getClientOriginalName());
+    
+    // Store in storage/app/public/menus (outside public root initially)
+    $path = $request->file('image')->storeAs('menus', $filename, 'public');
+}
+```
+
+**Security Measures:**
+1. **File type validation**: Only `jpeg`, `png`, `jpg` allowed
+2. **File size limit**: Maximum 2MB
+3. **Filename sanitization**: Remove special characters
+4. **Unique naming**: Timestamp prefix prevents collisions
+5. **Storage location**: `storage/app/public/menus` (accessed via symlink)
+
+---
+
+### 6. Authentication Security Enhancements
+
+#### Strong Password Policy
+
+**Implementation in AppServiceProvider.php:**
+
+```php
+use Illuminate\Validation\Rules\Password;
+
+public function boot(): void
+{
+    Password::defaults(function () {
+        return Password::min(10)
+            ->letters()
+            ->mixedCase()
+            ->numbers()
+            ->symbols()
+            ->uncompromised();
+    });
+}
+```
+
+**Requirements:**
+- ✅ Minimum 10 characters
+- ✅ Must contain letters
+- ✅ Must have uppercase AND lowercase
+- ✅ Must contain numbers
+- ✅ Must contain symbols
+- ✅ Checked against Have I Been Pwned database
+  
+
+#### Account Lockout Mechanism
+
+**LoginAttempt Model** tracks failed logins:
+
+```php
+Schema::create('login_attempts', function (Blueprint $table) {
+    $table->id();
+    $table->string('email');
+    $table->timestamp('attempted_at');
+    $table->boolean('successful')->default(false);
+});
+```
+
+**Implementation in StudentAuthController.php:**
+
+```php
+public function login(Request $request)
+{
+    // Check if account is locked
+    $recentFailures = LoginAttempt::where('email', $request->email)
+        ->where('successful', false)
+        ->where('attempted_at', '>=', now()->subMinutes(15))
+        ->count();
+
+    if ($recentFailures >= 5) {
+        return back()->withErrors([
+            'email' => 'Account locked due to too many failed attempts. Try again in 15 minutes.'
+        ]);
+    }
+
+    // Record login attempt
+    LoginAttempt::create([
+        'email' => $request->email,
+        'attempted_at' => now(),
+        'successful' => false,
+    ]);
+
+    // ... authentication logic ...
+
+    // On successful login, clear failed attempts
+    if ($authenticated) {
+        LoginAttempt::where('email', $request->email)
+            ->where('successful', false)
+            ->delete();
+    }
+}
+```
+
+**Lockout Policy:**
+- Maximum 5 failed attempts
+- 15-minute lockout period
+- Failed attempts cleared on successful login
+
+
+---
+
+## Summary of Implemented Security Measures
+
+### File Leakage Prevention
+
+| Security Layer | Implementation | Evidence |
+|----------------|----------------|----------|
+| **Environment Files** | `.gitignore` + `.htaccess` denial | `.env` not accessible via browser |
+| **Directory Browsing** | `Options -Indexes` | No file listing in `/storage`, `/config` |
+| **Error Disclosure** | `APP_DEBUG=false` (production) | Generic error pages in production |
+| **File Structure** | Only `/public` is web-accessible | All sensitive files outside DocumentRoot |
+| **Authorization** | Policy-based access control | IDOR protection on orders |
+
+### Web Server Configuration
+
+| Configuration | File Location | Purpose |
+|---------------|---------------|---------|
+| **Virtual Host** | `httpd-vhosts.conf` | DocumentRoot points to `/public` only |
+| **URL Rewriting** | `public/.htaccess` | All requests through `index.php` |
+| **Session Security** | `.env` | Secure, HttpOnly, SameSite cookies |
+| **Database Security** | Controllers (Eloquent ORM) | Prepared statements prevent SQL injection |
+| **Upload Validation** | Controllers | File type, size, and naming restrictions |
+| **Password Policy** | `AppServiceProvider.php` | Strong password requirements + breach check |
+| **Account Protection** | `LoginAttempt` model | Lockout after 5 failed attempts |
+
+### Testing Evidence
+
+Based on our Assignment 8 testing:
+
+✅ **SQL Injection**: Attempted on login form - Blocked by validation + ORM  
+✅ **IDOR**: Student B cannot access Student A's orders - 403 error  
+✅ **File Access**: Cannot access `.env`, `/storage`, `/config` directly  
+✅ **Error Disclosure**: Development shows details, production hides them  
+✅ **Weak Passwords**: Registration rejects passwords not meeting criteria  
+✅ **Brute Force**: Account locks after 5 failed login attempts  
+
+---
+
+## Configuration Files Reference
+
+### Key Files Modified/Created:
+
+1. **`.gitignore`** - Excludes sensitive files from Git
+2. **`.env`** - Environment configuration (never committed)
+3. **`public/.htaccess`** - URL rewriting and access control
+4. **`app/Providers/AppServiceProvider.php`** - Password policy
+5. **`app/Policies/OrderPolicy.php`** - Authorization rules
+6. **`app/Http/Controllers/StudentAuthController.php`** - Login attempts tracking
+7. **`database/migrations/xxx_create_login_attempts_table.php`** - Failed login tracking
+
+### Environment Configuration (.env):
+
+```env
+# Application
+APP_ENV=production
+APP_DEBUG=false
+
+# Database
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_DATABASE=unimeal_db
+DB_USERNAME=root
+DB_PASSWORD=
+
+# Session Security
+SESSION_DRIVER=database
+SESSION_LIFETIME=60
+SESSION_SECURE_COOKIE=true
+SESSION_HTTP_ONLY=true
+SESSION_SAME_SITE=strict
+```
+
+---
+
+## Recommendations for Production Deployment
+
+When deploying to a production server:
+
+1. ✅ Set `APP_DEBUG=false` in `.env`
+2. ✅ Use HTTPS and set `SESSION_SECURE_COOKIE=true`
+3. ✅ Set proper file permissions (644 for files, 755 for directories)
+4. ✅ Restrict `.env` file permissions to 600
+5. ✅ Configure Apache/Nginx to serve only `/public` directory
+6. ✅ Enable all security headers in `.htaccess`
+7. ✅ Regularly update dependencies: `composer update` and `npm update`
+8. ✅ Monitor `storage/logs/laravel.log` for security events
+9. ✅ Backup database regularly
+10. ✅ Use strong database credentials
+
+---
+
+## References
+
+- Laravel Security Best Practices: https://laravel.com/docs/security
+- OWASP Top 10: https://owasp.org/www-project-top-ten/
+- Assignment 8 Documentation: `SECURITY_ENHANCEMENTS.md`, `AUTHORIZATION_ENHANCEMENTS.md`
+```
 
 ## 7.0 References
 
@@ -1058,239 +1569,4 @@ WhatisSequenceDiagram?(n.d.).https://www.visual-paradigm.com/guide/uml-unified-m
 
 </br> 
 </br>
-
-# FINAL REPORT
-
-## 8.0 Project system captured screen and explaination
-
-### Login page
-<img src="./images/login page.jpg" width="60%">
-
-This screenshot captures the Login Page for the UNIMEAL web application. It serves as the primary gateway for existing users to access their accounts. The page is cleanly divided into two main sections:
-
-1. __The Login Form__
-   
-   On your left is the login form, this is the functional part of the page, designed for user interaction:
-   - __Credentials Input__: Standard fields are provided for the user to enter their email and password. The password field correctly masks the input for security.
-   - __Convenience Features__: A "Remember me" checkbox is available to keep the user logged in, and a "Forgot Password?" link provides a way to recover a lost account.
-   - __Primary Action__: The large pink "LOG IN" button is the main call-to-action for users to submit their credentials.
-   - __User Role Distinction__: Crucially, the page provides two distinct paths for new users:
-         - __Create an account__: This is for the primary user type, likely the students.
-         - __Register as Vendor__: This separate button indicates that the system supports multiple user roles, allowing cafeteria owners (vendors) to register and access a different part                                     of the application (like their dashboard).
-
-2. __Branding and Value Proposition__
-   
-   On the right is the brand and value proposition, this section communicates the application's identity and purpose:
-     - __Slogan__: The catchy tagline, "Skip the Line, Not the Meal!!!", clearly and effectively communicates the core benefit of using UNIMEAL—convenience and time-saving.
-     - __Logo__: The creative logo, featuring a burger wearing a graduation cap, cleverly targets its university student audience while representing its food-service nature.
-     
-     
-### Registration Page
-#### Student Registration Page
-<img src="./images/register.jpg" width="60%">
-
-This screenshot shows the Student Registration Page for the UNIMEAL application. It is the entry point for new students who want to create an account. The page maintains a consistent two-column layout, similar to the login screen:
-
-1. __The Registration Form__
-
-   On the left side, the form is designed to collect the essential information needed to create a student      account:
-
-     -  __Header__: It is clearly labeled "Create your Student Account" to avoid any confusion.
-     -  __Input Fields__: The form requests specific details from the student:
-           -  __Student/Matric Number__ : This unique identifier is crucial for verifying the user as a student within the university system.
-           -  __Name__: A standard field for the user's name or username.
-           -  __Email Address__: Used for account verification, login, and receiving notifications.
-           -  __Password and Password Confirmation__: Two fields for the password ensure the user enters their intended password correctly, reducing errors.
-           -  __Terms and Conditions__: An "Accept terms and conditions" checkbox is included, which is a standard practice for legal compliance and user agreement.
-           -  __Primary Action__: A prominent pink "REGISTER" button prompts the user to complete the process.
-   
-2. __Branding and Value Proposition__
-   
-   On the right is the brand and value proposition, this section communicates the application's identity and purpose:
-     - __Slogan__: The tagline "Skip the Line, Not the Meal!!!" is displayed again, connecting the registration process with the core benefit of the app.
-     - __Logo__: The UNIMEAL logo with the graduation-cap-wearing burger is present, maintaining visual consistency and appeal to the target audience.
-
-
-#### Vendor Registration Page
-<img src="./images/vendor_register.png" width="60%">
-
-This screenshot displays the Vendor Registration Page for the UNIMEAL platform. This is a dedicated portal for cafeteria owners or managers to create their business accounts, separate from the student users.
-
-1.**Key Features and Design**:
-   - **Clear and Focused Title**: The heading "Register as Vendor" immediately informs the user about the page's purpose, ensuring that cafeteria owners are on the correct registration path.
-   - **Essential Information Fields**: The form is streamlined to collect only the necessary details for a vendor account:
-      - **Name**: This field is intended for the name of the cafeteria itself (e.g., "Mahallah Aminah"), which will be displayed to students on the platform.
-      - **Email**: The primary contact and login credential for the vendor.
-      - **Password**: Standard fields for secure account creation.
-
-
-### Cafeteria & Menu Browsing Page
-<img src="./images/hp 1.jpg" width="60%">
-<img src="./images/hp 2.jpg" width="60%">
-
-This composite image shows the Student Homepage / Dashboard of the UNIMEAL application, which is the main landing page a student sees after successfully logging in. It's designed to be a central hub for navigating the app's features.
-
-1. __The Welcome and Promotion Section__
-   This is the "above the fold" content, designed to welcome the user and present key information immediately.
-
-   - __Personalized Header__: A warm greeting, "Welcome to UniMeal, Abduh," personalizes the experience and confirms the user is logged in. Essential action buttons, "Track My Orders" and "Logout," are prominently displayed for easy access.
-   - __Hero Section__: This visually engaging area uses a large graphic and bold text to communicate the app's value proposition:
-      - "UNIMEALING is more Personalised & Instant."
-      - It also includes a call-to-action to download a mobile app from the App Store and Google Play, suggesting a broader ecosystem beyond the web application. The arrows on the sides indicate this might be a rotating carousel for promotions or features.
-
-2. __Food and Cafeteria Selection__
-   This section provides the core functionality, allowing the user to begin the ordering process.
-   - __UniMeal Popular Categories__: This feature helps with food discovery by showcasing popular food types like Drinks, Pizza, Mee, Nasi, and Soup. It allows users to browse by food preference first, rather than by cafeteria, offering a flexible way to find what they want to eat.
-   - __Select Your Mahallah Cafeteria__: This is the primary navigation hub of the application. It presents a clear, grid-based list of available cafeterias on campus such as Siddiq Cafeteria, Aminah Cafeteria, Ruqayyah Cafeteria and many more. Each cafeteria is represented by its official logo and name, making it easy for students to recognize and select their desired dining location to start ordering.
-
-### Vendor Dashboard Page
-<img src="./images/vendor_dashboard.png" width="60%">
-
-The screenshot of Vendor Dashboard Page serves as the central hub for vendors registered in the UniMeal system. It is designed to provide quick access to key tools and information relevant to managing their food service operations within the platform.
-
-1. **Key Components of the Page**:
-- **Welcome Banner**:
-   - Displays a visually engaging banner promoting the UniMeal platform.
-   - Highlights app availability on Google Play and App Store.
-   - Branding slogan “UniMeal-ing is more” with a focus on personalized and instant service.
-   - Targeted toward vendors to encourage participation and usage of the system.
-
-- **User Greeting & Logout**:
-   - Shows a personalized welcome message with the vendor's name (e.g., “Welcome, Mahallah Ameenah”).
-   - Logout option for secure session management.
-
-- **Future Functionalities (to be included)**:
-   - Menu management (add/edit/delete food items)
-   - Order tracking and status updates
-   - Sales analytics and performance metrics
-   - Notifications and announcements
-   - Access to customer feedback or reviews
-
-
-
-### Food Ordering System Page
-<img src="./images/food_menu.png" width="60%">
-<img src="./images/food_menu(1).png" width="60%">
-
-This composite screenshot shows the Cafeteria Menu Page for "Aminah Cafeteria" within the UNIMEAL application. This is the central interface where a student browses the available food and drink items from a specific vendor and adds them to their order. 
-
-1. **Key Components of the Page**:
-   - **Header and Navigation**:
-      - The page has a clear header that displays the name of the selected cafeteria, "Aminah Cafeteria," so the user knows exactly where they are ordering from.
-      - It includes essential navigation buttons: a "Back to Home" link to return to the main dashboard and a "View Cart" button to proceed to the next step of the ordering process.
-
-   - **Search Functionality**:
-      - A prominent search bar is provided to help users quickly find specific items. The placeholder text, "Search category (e.g., nasi, mee, drinks)", guides the user on how to filter the menu effectively, which is particularly useful for cafeterias with extensive offerings.
-
-   - **The Menu Display**:
-      - The core of the page is the Menu, presented in a clean, visually-driven, card-based grid layout.
-      - Each card represents a single menu item and contains all the necessary information for the user to make a decision:
-         - **Food Image**: A clear, appealing picture of the dish or drink.
-         - **Item Name**: The name of the food (e.g., Teh Tarik, Mee Goreng, Nasi Lemak).
-         - **Category**: Helps organize the menu and provides context (e.g., Drinks, Mee, Nasi).
-         - **Price**: Clearly displayed in Malaysian Ringgit (RM).
-         - **Add to Cart Button**: A simple, one-click action for the user to add the item to their order.
-     
-
-
-### Payment Integration Page
-<img src="./images/food_cart.png" width="60%">
-<img src="./images/shipping.jpg" width="60%">
-<img src="./images/delivery.jpg" width="60%">
-<img src="./images/payment.jpg" width="60%">
-<img src="./images/payment 1.jpg" width="60%">
-
-This series of screenshots captures the entire checkout and ordering process for the UNIMEAL application. It's a well-structured, multi-step flow that guides the user from their shopping cart to a final order confirmation.
-
-1. __The Shopping Cart__
-
-   This is the first step where the user reviews their selections.
-      - __Item Review__: The user can see the items they've added ("Milo Ais"), along with the price and a picture.
-      - __Quantity Control__: Users can adjust the quantity of an item or remove it entirely.
-      - __Order Summary__: A clear "Total Amount" is displayed.
-      - __Call to Action__: The "Proceed to Checkout" button moves the user to the next stage.
-     
-3. __Checkout - Shipping Information__
-
-   This is the first page of the formal checkout process.
-      - __Progress Tracker__: A visual tracker ("Shipping — Delivery — Payment") shows the user their current stage and what's next.
-      - __Persistent Order Summary__: A detailed summary is fixed on the left, showing the itemized list, subtotal, taxes, and any fees. This summary updates dynamically as the user makes selections. It also includes a field for Discount Codes.
-      - __Information Form__: The main section on the right asks for the user's Shipping Information (name, phone number, address).
-
-4. __Checkout - Delivery Options__
-
-   After providing their details, the user selects how they want to receive their order.
-     - __Progress Update__: The tracker now highlights "Delivery."
-     - __Choice of Options__: The user is presented with multiple Delivery Options, each with a different timeframe and associated cost. For example, "Pick Up" is free, while faster delivery options have an added fee).
-     - __Dynamic Cost__: Selecting an option with a fee will update the "Shipping Fee" and "Total" in the order summary.
-       
-5. **Checkout - Payment Method** 
-
-   This is the final step before confirming the order.
-     - **Progress Update**: The tracker highlights "Payment."
-     - **Updated Order Summary**: The total on the left now reflects the delivery fee chosen in the previous step (Total is now RM7.66).
-     - **Payment Selection**: The user can choose from various Payment Methods, such as "Pay on Delivery," "Credit/Debit Cards," or "Direct Bank Transfer."
-     - **Final Action**: The "Place Order" button submits the order for processing.
-
-6. **Order Confirmation / Receipt**
-     - This final screen confirms that the order was successful.
-     - **Confirmation Message**: A clear "Order Confirmed!" message assures the user their order has been received.
-     - **Complete Order Details**: It provides a comprehensive receipt, including:
-        - Order ID and Status ("Pending").
-        - The selected Delivery and Payment methods.
-        - The user's Shipping Information.
-        - An itemized list of what was ordered.
-        - A final, detailed cost summary.
-
-### Order Tracking Page
-<img src="./images/track order.jpg" width="60%">
-
-This screenshot displays the Order History page of the UNIMEAL application. This is where a user can view and track all of their past and current orders. 
-
-- **Key Features of the Page**: Centralized Order List: The page presents a clear, chronological list of all orders placed by the user (e.g., "Order #2", "Order #1"). Each order is contained within its own distinct card, making the information easy to read and differentiate.
-
-- **At-a-Glance Order Summary**: Each order card provides a concise summary of the most important details:
-   - **Order Number**: A unique identifier for the transaction.
-   - **Total Cost**: The final price paid for the order.
-   - **Date and Time**: When the order was placed.
-   - **Delivery and Payment Method**: Confirms how the order will be received and was paid for (e.g., "Delivery: Pick Up," "Payment: Cash").
-
-- **Visual Status Tracker**:
-   - The most prominent feature is the graphical progress bar that visually tracks the status of each order.
-   - It shows three key stages: Confirmed → In Progress → Delivered.
-   - The current stage is highlighted (in pink), while future stages are greyed out. This allows the user to instantly understand the live status of their order without having to read through text. In this example, both orders are "Confirmed" but have not yet moved to the "In Progress" stage.
-
-
-
-## 9.0 What is the challenge/difficulties to develop the application
-
-1. __System Integration Challenges__
-      - Multiple user roles (student, vendor, admin) require separate dashboards and permissions.
-      - Synchronizing modules (e.g. order → shipping → payment) needs careful planning to avoid data                mismatches or delays.
-        
-2. __Backend & Database Complexity__
-      - Ensuring relational database structure is normalized and scalable.
-      - Preventing data redundancy and maintaining consistency across modules.
-        
-3. __Security & Authentication__
-      - Ensuring secure login/registration (especially for payment-related pages).
-        
-4. __User Interface & Experience (UI/UX)__
-      - Making sure the UI is responsive across devices.
-      - Ensuring the checkout flow is smooth (especially for payment).
-      - Preventing user drop-off due to confusing layouts or form overload.
-        
-5. __Testing & Bug Fixing__
-      - Testing all edge cases.
-      - Ensuring form validations work as expected.
-      - Testing across browsers and devices for layout consistency.
-        
-6. __Team Collaboration & Coordination__
-      - Merging code and avoiding Git conflicts when multiple people are working simultaneously.
-        
-7. __Time & Resource Constraints__
-      - Limited time to finish features for each team member.
-      - Balancing between design, coding, and testing phases
-
-
 

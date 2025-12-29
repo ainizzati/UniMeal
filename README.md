@@ -957,63 +957,370 @@ APP_DEBUG=false
 
 __vi. File Security Principles__
 
-1. Preventing File Leaks
-   A. Environment File Protection (.env)
-   The Problem: The .env file contains sensitive credentials (database passwords, API keys, etc.)
-   Protection Methods:
-   1. Add to .gitignore (Already done in UniMeal)
-   2. Web Server Block Access In Apache (.htaccess in project root):
-   3. File Permissions (Linux/Production)
-   B. Sensitive Directory Protection
-Directories to Protect:
+```markdown
 
-/storage/ - Contains logs, uploaded files, session data
-/database/ - Migration files, seeders
-/config/ - Configuration files
-/vendor/ - Third-party packages
-/node_modules/ - Frontend dependencies
+## Preventing File Leaks
 
-C. Uploaded Files Security
-UniMeal Implementation:
+### 1. Environment File Protection (.env)
 
-- Store Outside Public Directory
-- Validates File Types
-- Sanitize Filenames
-- Access Through Controller Only
+**The Problem:** The `.env` file contains sensitive credentials (database passwords, API keys, etc.)
 
-Add to .gitignore (Already done in UniMeal)
-3. Web Server Configuration Settings
-A. Apache Configuration (httpd.conf or Virtual Host)
-B. Laravel's Built-in Protection (public/index.php)
-Key Security Features:
+**Protection Methods:**
 
-- Document root is /public - All other files are OUTSIDE web-accessible directory
-- All requests go through index.php - Controlled entry point
-- No direct file access - Must go through Laravel routing
+#### A. Add to .gitignore
+```gitignore
+.env
+.env.backup
+.env.production
+```
 
-C. Laravel .htaccess Protection (public/.htaccess)
-D. Production Environment Settings (.env)
-Why APP_DEBUG=false is Critical:
-When APP_DEBUG=true (as shown in Assignment 8 screenshots), errors reveal:
+#### B. Web Server Block Access
+In Apache (`.htaccess` in project root):
+```apache
+<Files .env>
+    Order allow,deny
+    Deny from all
+</Files>
+```
 
-Full file paths
-Database structure
-Code snippets
-Environment variables
+#### C. File Permissions (Linux/Production)
+```bash
+chmod 600 .env
+```
 
-With APP_DEBUG=false:
+---
 
-Shows generic error pages
-Logs detailed errors to storage/logs/laravel.log
-Hides sensitive information from users
-E. File Permissions (Linux/Production Server)
+### 2. Sensitive Directory Protection
 
-4. Additional Security Configurations
-A. Prevent Information Disclosure
-Hide Server Version (Apache httpd.conf):
-Hide PHP Version (php.ini):
-B. Security Headers
-C. Block Common Attack Paths
+**Directories to Protect:**
+- `/storage/` - Contains logs, uploaded files, session data
+- `/database/` - Migration files, seeders
+- `/config/` - Configuration files
+- `/vendor/` - Third-party packages
+- `/node_modules/` - Frontend dependencies
+
+#### Apache Configuration (.htaccess)
+
+```apache
+# Deny access to storage directory
+<Directory "/path/to/UniMeal/storage">
+    Require all denied
+</Directory>
+
+# Deny access to vendor directory
+<Directory "/path/to/UniMeal/vendor">
+    Require all denied
+</Directory>
+
+# Deny access to .git directory
+<IfModule mod_rewrite.c>
+    RedirectMatch 404 /\.git
+</IfModule>
+```
+
+#### Project Root .htaccess
+```apache
+# Prevent directory browsing
+Options -Indexes
+
+# Deny access to sensitive files
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Block access to specific file types
+<FilesMatch "\.(env|log|sql|md|json|lock)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+```
+
+---
+
+### 3. Uploaded Files Security
+
+#### A. Store Outside Public Directory
+```php
+// In config/filesystems.php
+'disks' => [
+    'uploads' => [
+        'driver' => 'local',
+        'root' => storage_path('app/uploads'),  // Outside public/
+        'visibility' => 'private',
+    ],
+],
+```
+
+#### B. Validate File Types
+```php
+// In controller (e.g., MenuController.php)
+$request->validate([
+    'image' => 'required|image|mimes:jpeg,png,jpg|max:2048'
+]);
+```
+
+#### C. Sanitize Filenames
+```php
+$filename = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $file->getClientOriginalName());
+```
+
+#### D. Access Through Controller Only
+```php
+// Route in web.php
+Route::get('/uploads/{filename}', [FileController::class, 'show'])
+    ->middleware('auth');
+
+// Controller checks authorization
+public function show($filename) {
+    if (!auth()->user()->canAccessFile($filename)) {
+        abort(403);
+    }
+    return response()->file(storage_path('app/uploads/' . $filename));
+}
+```
+
+---
+
+## Web Server Configuration Settings
+
+### 1. Apache Configuration (httpd.conf or Virtual Host)
+
+```apache
+<VirtualHost *:80>
+    ServerName unimeal.local
+    DocumentRoot "C:/xampp/htdocs/websec/UniMeal/public"
+    
+    # Point to public directory ONLY
+    <Directory "C:/xampp/htdocs/websec/UniMeal/public">
+        AllowOverride All
+        Require all granted
+        Options -Indexes +FollowSymLinks
+    </Directory>
+    
+    # Deny access to parent directories
+    <Directory "C:/xampp/htdocs/websec/UniMeal">
+        Require all denied
+    </Directory>
+    
+    # Explicitly allow public
+    <Directory "C:/xampp/htdocs/websec/UniMeal/public">
+        Require all granted
+    </Directory>
+    
+    # Error and access logs
+    ErrorLog "logs/unimeal-error.log"
+    CustomLog "logs/unimeal-access.log" combined
+</VirtualHost>
+```
+
+---
+
+### 2. Laravel's Built-in Protection
+
+**How It Works (public/index.php):**
+```php
+// public/index.php
+define('LARAVEL_START', microtime(true));
+
+// Register autoloader
+require __DIR__.'/../vendor/autoload.php';
+
+// Bootstrap Laravel
+$app = require_once __DIR__.'/../bootstrap/app.php';
+```
+
+**Key Security Features:**
+1. **Document root is /public** - All other files are OUTSIDE web-accessible directory
+2. **All requests go through index.php** - Controlled entry point
+3. **No direct file access** - Must go through Laravel routing
+
+---
+
+### 3. Laravel .htaccess Protection (public/.htaccess)
+
+```apache
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Redirect Trailing Slashes If Not A Folder
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Send Requests To Front Controller
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Disable directory browsing
+Options -Indexes
+
+# Deny access to hidden files
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+```
+
+---
+
+### 4. Production Environment Settings (.env)
+
+```env
+APP_ENV=production
+APP_DEBUG=false  # CRITICAL: Never show errors in production
+
+# Session Security
+SESSION_SECURE_COOKIE=true
+SESSION_HTTP_ONLY=true
+SESSION_SAME_SITE=strict
+
+# Database - Use strong credentials
+DB_PASSWORD=strong_random_password_here
+```
+
+#### Why APP_DEBUG=false is Critical
+
+When `APP_DEBUG=true`, errors reveal:
+- ❌ Full file paths
+- ❌ Database structure
+- ❌ Code snippets
+- ❌ Environment variables
+
+With `APP_DEBUG=false`:
+- ✅ Shows generic error pages
+- ✅ Logs detailed errors to `storage/logs/laravel.log`
+- ✅ Hides sensitive information from users
+
+---
+
+### 5. File Permissions (Linux/Production Server)
+
+```bash
+# Set proper ownership
+chown -R www-data:www-data /var/www/UniMeal
+
+# Directory permissions
+find /var/www/UniMeal -type d -exec chmod 755 {} \;
+
+# File permissions
+find /var/www/UniMeal -type f -exec chmod 644 {} \;
+
+# Storage and cache need write access
+chmod -R 775 storage bootstrap/cache
+chown -R www-data:www-data storage bootstrap/cache
+
+# Protect sensitive files
+chmod 600 .env
+chmod 644 composer.json composer.lock package.json
+```
+
+---
+
+## Additional Security Configurations
+
+### 1. Prevent Information Disclosure
+
+#### Hide Server Version (Apache httpd.conf)
+```apache
+ServerTokens Prod
+ServerSignature Off
+```
+
+#### Hide PHP Version (php.ini)
+```ini
+expose_php = Off
+```
+
+---
+
+### 2. Security Headers
+
+Add to `public/.htaccess`:
+```apache
+<IfModule mod_headers.c>
+    # Prevent clickjacking
+    Header set X-Frame-Options "SAMEORIGIN"
+    
+    # XSS Protection
+    Header set X-XSS-Protection "1; mode=block"
+    
+    # Prevent MIME sniffing
+    Header set X-Content-Type-Options "nosniff"
+    
+    # Referrer Policy
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+```
+
+---
+
+### 3. Block Common Attack Paths
+
+```apache
+# Block access to common sensitive files
+<FilesMatch "(^#.*#|\.(bak|conf|dist|fla|in[ci]|log|psd|sh|sql|sw[op])|~)$">
+    Require all denied
+</FilesMatch>
+
+# Block access to version control
+RedirectMatch 404 /\.git
+RedirectMatch 404 /\.svn
+
+# Block composer files
+<FilesMatch "^(composer\.(json|lock)|package(-lock)?\.json)$">
+    Require all denied
+</FilesMatch>
+```
+
+---
+
+## Summary
+
+### Protection Layers
+
+| Layer | Protection Method | Configuration File |
+|-------|------------------|-------------------|
+| **Environment Variables** | .gitignore, file permissions | `.gitignore`, `.htaccess` |
+| **Directory Access** | DocumentRoot = /public only | `httpd.conf`, Virtual Host |
+| **File Browsing** | Options -Indexes | `.htaccess` |
+| **Direct File Access** | Laravel routing | `public/index.php` |
+| **Error Disclosure** | APP_DEBUG=false | `.env` |
+| **Uploaded Files** | Storage outside public/ | `config/filesystems.php` |
+| **Session Security** | Secure cookies | `.env` session settings |
+| **Server Info** | Hide version headers | `httpd.conf`, `php.ini` |
+
+---
+
+### Security Checklist
+
+- ✅ Sensitive files (.env, logs, config) are never exposed
+- ✅ Only /public directory is web-accessible
+- ✅ All requests go through Laravel's security layer
+- ✅ Error messages don't reveal system details
+- ✅ Uploaded files are validated and stored securely
+- ✅ Directory browsing is disabled
+- ✅ Security headers are properly configured
+- ✅ File permissions follow the principle of least privilege
+
+---
+
+## References
+
+- [Laravel Security Documentation](https://laravel.com/docs/security)
+- [OWASP Security Guidelines](https://owasp.org/)
+- [Apache Security Tips](https://httpd.apache.org/docs/2.4/misc/security_tips.html)
+```
+
 
 ## 7.0 References
 

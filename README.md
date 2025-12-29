@@ -955,36 +955,6 @@ APP_DEBUG=false
 
 <img width="1331" height="681" alt="image" src="https://github.com/user-attachments/assets/17f3a8d3-3ce1-4e20-b68e-6451a75e4363" />
 
-6. Database Access Control (Least Privilege)
-
-Security Principle: Principle of Least Privilege
-
-Layer: Database User Permissions
-
-The application uses a dedicated database user with restricted privileges.
-
-Granted Permissions:
-
-- SELECT
-- INSERT
-- UPDATE
-- DELETE
-
-Restricted Permissions:
-- DROP
-- ALTER
-- GRANT
-
-Security Impact:
-- Limits damage if application is compromised
-- Prevents schema modification and data destruction
-
-Testing Performed:
-
-Attempted DROP TABLE and ALTER TABLE commands using the application database user
-
-Result: All unauthorized operations were denied.
-
 __vi. File Security Principles__
 
 

@@ -835,6 +835,14 @@ Testing Performed:
 
 Attempted to inject non-fillable fields using modified POST requests
 
+<img width="1512" height="801" alt="image" src="https://github.com/user-attachments/assets/54f29fe3-596b-4591-ac1a-c3ddebf6a398" />
+
+<img width="1540" height="784" alt="image" src="https://github.com/user-attachments/assets/46eee399-314f-46f1-a3b6-65d91eb82326" />
+
+
+<img width="1919" height="969" alt="image" src="https://github.com/user-attachments/assets/83758eeb-367d-48fc-a454-d28e87607cce" />
+
+
 Result: Unauthorized fields were ignored and not stored.
 
 

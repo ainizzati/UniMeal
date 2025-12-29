@@ -688,7 +688,7 @@ __Security Benefits:__
 
 -Adds an extra layer of defense in depth.
 
-
+<img width="1918" height="1078" alt="Screenshot 2025-12-28 231013" src="images/CSRF7.jpeg" />
 
 __2. Input Validation Against HTML Injection__
 
@@ -702,11 +702,12 @@ __Implementation Details:__
 
 A-pplied in StudentAuthController.php (registration) and CheckoutController.php (checkout forms).
 
+```
 $request->validate([
     'name' => 'required|string|max:255|regex:/^[^<>]*$/',
     'address' => 'required|string|max:500|regex:/^[^<>]*$/',
 ]);
-
+```
 __Security Benefits:__
 
 -Prevents stored XSS attacks.
@@ -740,17 +741,49 @@ __Security Benefits:__
 
 -No manual code needed; framework handles validation.
 
-<img width="1918" height="1078" alt="Screenshot 2025-12-28 231013" src="images/CSRF1.jpeg" />
-<img width="1918" height="1078" alt="Screenshot 2025-12-28 231013" src="images/CSRF2.jpeg" />
-<img width="1918" height="1078" alt="Screenshot 2025-12-28 231013" src="images/CSRF3.jpeg" />
-<img width="1918" height="1078" alt="Screenshot 2025-12-28 231013" src="images/CSRF4.jpeg" />
-<img width="1918" height="1078" alt="Screenshot 2025-12-28 231013" src="images/CSRF5.jpeg" />
-<img width="1918" height="1078" alt="Screenshot 2025-12-28 231013" src="images/CSRF6.jpeg" />
+<img width="1918" height="1078" alt="Screenshot 2025-12-28 231013" src="images/CSRF8.jpeg" />
 
 
+_4. Secure Logout with Session Invalidation_
+
+_Purpose:_
+
+Prevents users from accessing protected pages after logout by clicking the browser back button
+
+_Implementation Details:_
 
 
-Initial Security Audit and Vulnerability Identification
+- Session invalidation**: Completely destroys the session
+  
+- CSRF token regeneration**: Generates new token to prevent reuse
+  
+- Multi-guard logout**: Logs out from both student and cafeteria guards
+  
+- Clear user feedback**: Success message after logout
+
+_Implementation Details:_
+
+*Implementation*:
+```php
+// Logout from all guards
+Auth::guard('student')->logout();
+Auth::guard('cafeteria')->logout();
+
+// Invalidate the session
+$request->session()->invalidate();
+
+// Regenerate CSRF token
+$request->session()->regenerateToken();
+```
+
+_Security Benefits:_
+
+- Prevents session reuse**: Old session cannot be used after logout
+- Blocks back button access**: Browser cache cleared, back button shows login page
+- CSRF protection**: New token prevents token replay attacks
+- Complete cleanup**: All authentication state removed
+- Multi-guard safety**: Works across different user types
+
 
 ## V. Database Security Principles
 

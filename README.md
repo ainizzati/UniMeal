@@ -885,10 +885,49 @@ Result: Database rejected invalid records.
 Critical operations such as order creation and shipping record insertion are wrapped inside database transactions.
 
 ```
-DB::transaction(function () {
-    Order::create([...]);
-    Shipping::create([...]);
+// ============================================
+// TRANSACTION WRAPPER - ACID COMPLIANCE
+// ============================================
+$order = DB::transaction(function () use ($user, $orderTotal, $shipping, $deliveryOption, $shippingFee, $salesTax, $cart, $validated) {
+    
+    // Create order
+    $order = Order::create([
+        'student_id' => $user->matric_no,
+        'total_amount' => $orderTotal,
+        'address' => $shipping['address'],
+        'delivery_option' => $deliveryOption,
+        'payment_method' => $validated['payment_method'],
+        'shipping_fee' => $shippingFee,
+        'sales_tax' => $salesTax,
+    ]);
+
+    // Set status explicitly
+    $order->status = 'Pending';
+    $order->save();
+
+    // Create shipping record
+    Shipping::create([
+        'order_id' => $order->id,
+        'name' => $shipping['name'],
+        'phone' => $shipping['phone'],
+        'address' => $shipping['address'],
+    ]);
+
+    // Create order items
+    foreach ($cart as $item) {
+        OrderItem::create([
+            'order_id' => $order->id,
+            'name' => $item['name'],
+            'price' => $item['price'],
+            'image' => $item['image'],
+            'quantity' => $item['quantity'],
+        ]);
+    }
+
+    // IMPORTANT: Return the order so it's accessible outside
+    return $order;
 });
+// Now $order is accessible here for the redirect
 ```
 
 Security Impact:

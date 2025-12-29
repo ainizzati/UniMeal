@@ -63,6 +63,8 @@ __Client-Side Validation (register_student.blade.php):__
 - Password confirmation matching before form submission
 - Immediate user feedback on validation errors
 
+<img width="1918" height="1078" alt="Screenshot 2025-12-28 231013" src="images/IV1.jpeg" />
+
 __Server-Side Validation (StudentAuthController):__
 - Matric Number: Integer type, must be unique in database
 - Name: String, maximum 255 characters, regex pattern to prevent HTML tags (/^[^<>]*$/)

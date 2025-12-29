@@ -876,7 +876,7 @@ Testing Performed:
 Result: Database rejected invalid records.
 
 
-4. Transaction Management (ACID Compliance)
+4. Transaction Management
 
 - Security Principle: Atomicity, Consistency
 
@@ -886,7 +886,7 @@ Critical operations such as order creation and shipping record insertion are wra
 
 ```
 // ============================================
-// TRANSACTION WRAPPER - ACID COMPLIANCE
+// TRANSACTION WRAPPER 
 // ============================================
 $order = DB::transaction(function () use ($user, $orderTotal, $shipping, $deliveryOption, $shippingFee, $salesTax, $cart, $validated) {
     

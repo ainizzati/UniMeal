@@ -64,7 +64,8 @@ __Client-Side Validation (register_student.blade.php):__
 - Password confirmation matching before form submission
 - Immediate user feedback on validation errors
 
-<img width="1918" height="1078" alt="Screenshot 2025-12-28 231013" src="images/IV1.jpeg" />
+<img width="1280" height="732" alt="IV1" src="https://github.com/user-attachments/assets/97eddd47-8a73-4f39-957b-b65b071f4dc8" />
+
 
 __Server-Side Validation (StudentAuthController):__
 - Matric Number: Integer type, must be unique in database
@@ -689,7 +690,8 @@ __Security Benefits:__
 
 -Adds an extra layer of defense in depth.
 
-<img width="1918" height="1078" alt="Screenshot 2025-12-28 231013" src="images/CSRF7.jpeg" />
+<img width="1280" height="674" alt="CSRF7" src="https://github.com/user-attachments/assets/2b163c6d-f38c-41fb-a494-83c36bf17211" />
+
 
 __2. Input Validation Against HTML Injection__
 
@@ -742,7 +744,8 @@ __Security Benefits:__
 
 -No manual code needed; framework handles validation.
 
-<img width="1918" height="1078" alt="Screenshot 2025-12-28 231013" src="images/CSRF8.jpeg" />
+
+<img width="1280" height="677" alt="CSRF8" src="https://github.com/user-attachments/assets/dfb1fe9b-f5ef-4934-8eaa-ad80b5ab3f33" />
 
 
 _4. Secure Logout with Session Invalidation_

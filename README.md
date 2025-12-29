@@ -957,6 +957,63 @@ APP_DEBUG=false
 
 __vi. File Security Principles__
 
+1. Preventing File Leaks
+   A. Environment File Protection (.env)
+   The Problem: The .env file contains sensitive credentials (database passwords, API keys, etc.)
+   Protection Methods:
+   1. Add to .gitignore (Already done in UniMeal)
+   2. Web Server Block Access In Apache (.htaccess in project root):
+   3. File Permissions (Linux/Production)
+   B. Sensitive Directory Protection
+Directories to Protect:
+
+/storage/ - Contains logs, uploaded files, session data
+/database/ - Migration files, seeders
+/config/ - Configuration files
+/vendor/ - Third-party packages
+/node_modules/ - Frontend dependencies
+
+C. Uploaded Files Security
+UniMeal Implementation:
+
+- Store Outside Public Directory
+- Validates File Types
+- Sanitize Filenames
+- Access Through Controller Only
+
+Add to .gitignore (Already done in UniMeal)
+3. Web Server Configuration Settings
+A. Apache Configuration (httpd.conf or Virtual Host)
+B. Laravel's Built-in Protection (public/index.php)
+Key Security Features:
+
+- Document root is /public - All other files are OUTSIDE web-accessible directory
+- All requests go through index.php - Controlled entry point
+- No direct file access - Must go through Laravel routing
+
+C. Laravel .htaccess Protection (public/.htaccess)
+D. Production Environment Settings (.env)
+Why APP_DEBUG=false is Critical:
+When APP_DEBUG=true (as shown in Assignment 8 screenshots), errors reveal:
+
+Full file paths
+Database structure
+Code snippets
+Environment variables
+
+With APP_DEBUG=false:
+
+Shows generic error pages
+Logs detailed errors to storage/logs/laravel.log
+Hides sensitive information from users
+E. File Permissions (Linux/Production Server)
+
+4. Additional Security Configurations
+A. Prevent Information Disclosure
+Hide Server Version (Apache httpd.conf):
+Hide PHP Version (php.ini):
+B. Security Headers
+C. Block Common Attack Paths
 
 ## 7.0 References
 

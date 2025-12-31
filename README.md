@@ -1044,7 +1044,7 @@ This section outlines the comprehensive security audit conducted on the UniMeal 
 - Server-side validation throughout
 - `.htaccess` file was missing (now fixed)
 - Backup ZIP files in public directory (now removed)
-- `APP_DEBUG=false` for production
+- `APP_DEBUG=true` for development (now fixed)
 
 ---
 

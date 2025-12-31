@@ -1662,7 +1662,7 @@ DB_PASSWORD: [value visible in debug output]
 
 **Recommendation:**
 
-**For Development (Current):** No changes needed
+**For Development (before):** No changes needed
 ```env
 APP_ENV=local
 APP_DEBUG=true
